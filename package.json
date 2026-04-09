@@ -1,0 +1,87 @@
+{
+  "name": "compositor",
+  "displayName": "Early Text Compositor",
+  "description": "A VSCode extension for contributing to the Early Text Corpus",
+  "version": "0.0.1",
+  "publisher": "earlytexts",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "extensionDependencies": [
+    "earlytexts.vscode-markit"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "compositor",
+          "title": "Compositor",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "compositor": [
+        {
+          "id": "compositor.controls",
+          "name": "Controls",
+          "type": "webview"
+        },
+        {
+          "id": "compositor.corpusBrowser",
+          "name": "Corpus",
+          "contextualTitle": "Early Text Corpus"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "compositor.refreshCorpus",
+        "title": "Refresh Corpus",
+        "category": "Compositor",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "compositor.refreshCorpus",
+          "when": "view == compositor.corpusBrowser",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Compositor",
+      "properties": {
+        "compositor.corpusPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the local copy of the Early Text Corpus"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "package": "vsce package",
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "@types/vscode": "^1.110.0",
+    "esbuild": "^0.28.0",
+    "typescript": "^6.0.2"
+  },
+  "dependencies": {
+    "@earlytexts/markit": "^2.5.0"
+  }
+}
