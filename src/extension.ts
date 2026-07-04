@@ -1,55 +1,174 @@
+/**
+ * Activation and wiring. The extension assumes the user has cloned the corpus
+ * themselves and opened VSCode in it (or set compositor.corpusRoot to its
+ * workspace-relative path); git stays in the user's hands. Everything runs
+ * in-process — corpus logic is bundled from @earlytexts/corpus, so
+ * contributors need nothing beyond VSCode.
+ *
+ * Views and commands are always registered; the corpus model attaches when a
+ * corpus is found (at startup, on Refresh, or when workspace folders change),
+ * so a non-corpus window degrades to a welcome message rather than errors.
+ */
+
 import * as vscode from "vscode";
-import { CorpusTreeProvider } from "./corpusTreeProvider.js";
-import { ControlsProvider } from "./controlsProvider.js";
+import { type CorpusModel, createCorpusModel } from "./corpusModel.ts";
+import { createCorpusTree, type TreeNode } from "./corpusTree.ts";
+import { registerDiagnostics } from "./diagnostics.ts";
+import { nodeCorpusFs } from "@earlytexts/corpus/fs";
+import {
+  newAuthor,
+  newEdition,
+  newWork,
+  workDocId,
+} from "./commands/scaffolds.ts";
+import { fixFormatting } from "./commands/fixFormatting.ts";
+import { insertBorrowedRef } from "./commands/insertBorrowedRef.ts";
+import { compareEditions, compareWithNext } from "./commands/compareEditions.ts";
+import { replaceInScope } from "./commands/replaceInScope.ts";
 
-export function activate(context: vscode.ExtensionContext) {
-  const config = vscode.workspace.getConfiguration("compositor");
-  const corpusPath = config.get<string>("corpusPath", "");
+/** The first workspace folder that looks like the corpus (has data/authors),
+ * honouring the compositor.corpusRoot setting. */
+const findCorpusRoot = async (): Promise<string | undefined> => {
+  const configured = vscode.workspace
+    .getConfiguration("compositor")
+    .get<string>("corpusRoot", "")
+    .replace(/\/$/, "");
+  for (const folder of vscode.workspace.workspaceFolders ?? []) {
+    const root = configured === ""
+      ? folder.uri.fsPath
+      : `${folder.uri.fsPath}/${configured}`;
+    const authors = await nodeCorpusFs.stat(`${root}/data/authors`);
+    // Canonicalised, so the model's precompiled-document keys line up with the
+    // paths buildCatalog resolves internally.
+    if (authors !== null && !authors.isFile) {
+      return await nodeCorpusFs.realPath(root);
+    }
+  }
+  return undefined;
+};
 
-  const treeProvider = new CorpusTreeProvider(corpusPath);
+export const activate = async (
+  context: vscode.ExtensionContext,
+): Promise<void> => {
+  let model: CorpusModel | undefined;
 
-  const treeView = vscode.window.createTreeView("compositor.corpusBrowser", {
-    treeDataProvider: treeProvider,
+  const tree = createCorpusTree(() => model);
+  const view = vscode.window.createTreeView("compositor.corpusBrowser", {
+    treeDataProvider: tree,
     showCollapseAll: true,
   });
-  context.subscriptions.push(treeView);
+  const updateView = (): void => {
+    tree.refresh();
+    // With no model, leave message and badge unset so the view's welcome
+    // content (package.json viewsWelcome) shows instead.
+    view.message = model === undefined
+      ? undefined
+      : model.loading
+      ? "Loading the corpus…"
+      : model.state === undefined
+      ? "The corpus failed to load."
+      : undefined;
+    const problems = model?.state?.violations.length ?? 0;
+    view.badge = problems === 0 ? undefined : {
+      value: problems,
+      tooltip: `${problems} corpus violation(s)`,
+    };
+  };
+  context.subscriptions.push(view);
 
-  const controlsProvider = new ControlsProvider();
+  /** Look for the corpus and attach the model to it; true if attached. */
+  const attach = async (): Promise<boolean> => {
+    if (model !== undefined) return true;
+    const root = await findCorpusRoot();
+    if (root === undefined) return false;
+    model = createCorpusModel(root);
+    context.subscriptions.push(
+      { dispose: () => model?.dispose() },
+      model.onDidChange(updateView),
+    );
+    registerDiagnostics(model, context);
+    updateView();
+    return true;
+  };
+
+  /** Run a handler against the model, or say why there isn't one. */
+  const withModel = async (
+    handler: (model: CorpusModel) => unknown,
+  ): Promise<unknown> => {
+    if (await attach()) return handler(model!);
+    return vscode.window.showWarningMessage(
+      "Compositor: no corpus found — open a clone of the corpus " +
+        "(a folder containing data/authors), or set compositor.corpusRoot.",
+    );
+  };
+
+  const command = (
+    id: string,
+    handler: (node?: TreeNode) => unknown,
+  ): vscode.Disposable => vscode.commands.registerCommand(id, handler);
+
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      ControlsProvider.viewId,
-      controlsProvider
-    )
+    // Delegates to the built-in git extension: its clone command picks the
+    // destination, shows progress, and offers to open the result — which
+    // activates this extension (workspaceContains:data/authors). No build step
+    // is needed: the model compiles in memory, and its first load writes dist/.
+    command(
+      "compositor.cloneCorpus",
+      () =>
+        vscode.commands.executeCommand(
+          "git.clone",
+          "https://github.com/earlytexts/corpus",
+        ),
+    ),
+    command("compositor.refresh", () => withModel((m) => m.reload())),
+    command("compositor.validate", () => withModel((m) => m.reload())),
+    command("compositor.fixFormatting", () => withModel(fixFormatting)),
+    command("compositor.newAuthor", () => withModel(newAuthor)),
+    command(
+      "compositor.newWork",
+      (node) => withModel((m) => newWork(m, node)),
+    ),
+    command(
+      "compositor.newEdition",
+      (node) => withModel((m) => newEdition(m, node)),
+    ),
+    command(
+      "compositor.insertBorrowedRef",
+      () => withModel(insertBorrowedRef),
+    ),
+    command(
+      "compositor.replaceInScope",
+      () => withModel(replaceInScope),
+    ),
+    command(
+      "compositor.compareEditions",
+      (node) => withModel((m) => compareEditions(m, node)),
+    ),
+    command(
+      "compositor.compareWithNext",
+      (node) => withModel((m) => compareWithNext(m, node)),
+    ),
+    command("compositor.openWorkStub", (node) => {
+      // A borrowed node has no visible work parent, so this jumps to the
+      // borrowed edition's own work metadata.
+      if (node?.kind !== "work" && node?.kind !== "borrowed") return;
+      return vscode.window.showTextDocument(
+        vscode.Uri.file(`${node.work.dir}/index.mit`),
+      );
+    }),
+    command("compositor.copyDocId", (node) => {
+      const id = node?.kind === "edition" || node?.kind === "borrowed"
+        ? node.edition.document.id
+        : node?.kind === "work"
+        ? workDocId(node.work)
+        : undefined;
+      if (id !== undefined) return vscode.env.clipboard.writeText(id);
+    }),
+    // A corpus folder added to the workspace later still gets picked up.
+    vscode.workspace.onDidChangeWorkspaceFolders(() => void attach()),
   );
 
-  context.subscriptions.push(
-    vscode.window.onDidChangeActiveTextEditor(() => {
-      controlsProvider.update();
-    })
-  );
+  await attach();
+};
 
-  context.subscriptions.push(
-    controlsProvider.onDidSearch((query) => {
-      treeProvider.setFilter(query);
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("compositor.refreshCorpus", () => {
-      treeProvider.refresh();
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("compositor.corpusPath")) {
-        const newPath = vscode.workspace
-          .getConfiguration("compositor")
-          .get<string>("corpusPath", "");
-        treeProvider.setCorpusPath(newPath);
-      }
-    })
-  );
-}
-
-export function deactivate() {}
+export const deactivate = (): void => {};

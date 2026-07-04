@@ -2,7 +2,7 @@
   "name": "compositor",
   "displayName": "Early Text Compositor",
   "description": "A VSCode extension for contributing to the Early Text Corpus",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "earlytexts",
   "license": "MIT",
   "type": "module",
@@ -12,8 +12,10 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
-  "main": "./dist/extension.js",
+  "activationEvents": [
+    "workspaceContains:data/authors"
+  ],
+  "main": "./dist/extension.cjs",
   "extensionDependencies": [
     "earlytexts.vscode-markit"
   ],
@@ -30,41 +32,183 @@
     "views": {
       "compositor": [
         {
-          "id": "compositor.controls",
-          "name": "Controls",
-          "type": "webview"
-        },
-        {
           "id": "compositor.corpusBrowser",
           "name": "Corpus",
           "contextualTitle": "Early Text Corpus"
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "compositor.corpusBrowser",
+        "contents": "No corpus found.\nOpen a clone of the [Early Text Corpus](https://github.com/earlytexts/corpus) — a folder containing data/authors — or set compositor.corpusRoot if the corpus is a subfolder of the workspace.\n[Clone Corpus](command:compositor.cloneCorpus)\n[Retry](command:compositor.refresh)"
+      }
+    ],
     "commands": [
       {
-        "command": "compositor.refreshCorpus",
+        "command": "compositor.cloneCorpus",
+        "title": "Clone Corpus…",
+        "category": "Compositor",
+        "icon": "$(repo-clone)"
+      },
+      {
+        "command": "compositor.refresh",
         "title": "Refresh Corpus",
         "category": "Compositor",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "compositor.validate",
+        "title": "Validate Corpus",
+        "category": "Compositor",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "compositor.fixFormatting",
+        "title": "Fix Formatting (Whole Corpus)",
+        "category": "Compositor"
+      },
+      {
+        "command": "compositor.newAuthor",
+        "title": "New Author…",
+        "category": "Compositor",
+        "icon": "$(person-add)"
+      },
+      {
+        "command": "compositor.newWork",
+        "title": "New Work…",
+        "category": "Compositor"
+      },
+      {
+        "command": "compositor.newEdition",
+        "title": "New Edition…",
+        "category": "Compositor"
+      },
+      {
+        "command": "compositor.insertBorrowedRef",
+        "title": "Insert Borrowed Section Reference…",
+        "category": "Compositor"
+      },
+      {
+        "command": "compositor.replaceInScope",
+        "title": "Replace in Work / Author…",
+        "category": "Compositor"
+      },
+      {
+        "command": "compositor.compareEditions",
+        "title": "Compare Editions…",
+        "category": "Compositor",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "compositor.compareWithNext",
+        "title": "Compare with Next Edition",
+        "category": "Compositor",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "compositor.openWorkStub",
+        "title": "Open Work Metadata",
+        "category": "Compositor"
+      },
+      {
+        "command": "compositor.copyDocId",
+        "title": "Copy Document ID",
+        "category": "Compositor"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "compositor.refreshCorpus",
+          "command": "compositor.refresh",
           "when": "view == compositor.corpusBrowser",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "compositor.newAuthor",
+          "when": "view == compositor.corpusBrowser",
+          "group": "navigation@2"
+        },
+        {
+          "command": "compositor.validate",
+          "when": "view == compositor.corpusBrowser",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "compositor.newWork",
+          "when": "view == compositor.corpusBrowser && viewItem == author",
+          "group": "compositor@1"
+        },
+        {
+          "command": "compositor.newEdition",
+          "when": "view == compositor.corpusBrowser && viewItem == work",
+          "group": "compositor@1"
+        },
+        {
+          "command": "compositor.compareWithNext",
+          "when": "view == compositor.corpusBrowser && viewItem =~ /HasNext$/",
+          "group": "compositor@2"
+        },
+        {
+          "command": "compositor.compareEditions",
+          "when": "view == compositor.corpusBrowser && viewItem =~ /work|edition|borrowed/",
+          "group": "compositor@3"
+        },
+        {
+          "command": "compositor.openWorkStub",
+          "when": "view == compositor.corpusBrowser && viewItem =~ /^(work|borrowed)/",
+          "group": "compositor@4"
+        },
+        {
+          "command": "compositor.copyDocId",
+          "when": "view == compositor.corpusBrowser && viewItem =~ /work|edition|borrowed/",
+          "group": "compositor@5"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "compositor.insertBorrowedRef",
+          "when": "resourceExtname == .mit",
+          "group": "compositor"
+        },
+        {
+          "command": "compositor.replaceInScope",
+          "when": "resourceExtname == .mit",
+          "group": "compositor"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "compositor.openWorkStub",
+          "when": "false"
+        },
+        {
+          "command": "compositor.copyDocId",
+          "when": "false"
+        },
+        {
+          "command": "compositor.newWork",
+          "when": "false"
+        },
+        {
+          "command": "compositor.newEdition",
+          "when": "false"
+        },
+        {
+          "command": "compositor.compareWithNext",
+          "when": "false"
         }
       ]
     },
     "configuration": {
       "title": "Compositor",
       "properties": {
-        "compositor.corpusPath": {
+        "compositor.corpusRoot": {
           "type": "string",
           "default": "",
-          "description": "Path to the local copy of the Early Text Corpus"
+          "description": "Workspace-relative path to the corpus root (the directory containing data/). Leave empty when VSCode is opened in the corpus itself."
         }
       }
     }
@@ -72,16 +216,19 @@
   "scripts": {
     "compile": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
-    "package": "vsce package",
-    "lint": "eslint src"
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "package": "vsce package --no-dependencies"
   },
   "devDependencies": {
     "@types/node": "^25.5.2",
-    "@types/vscode": "^1.110.0",
+    "@types/vscode": "^1.85.0",
     "esbuild": "^0.28.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "vitest": "^3.0.0"
   },
   "dependencies": {
-    "@earlytexts/markit": "^2.5.0"
+    "@earlytexts/corpus": "file:../corpus",
+    "@earlytexts/markit": "^3.2.2"
   }
 }
