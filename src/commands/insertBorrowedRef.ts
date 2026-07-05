@@ -13,13 +13,13 @@ export const insertBorrowedRef = async (
   model: CorpusModel,
 ): Promise<void> => {
   const editor = vscode.window.activeTextEditor;
-  const catalog = model.state?.catalog;
-  if (editor === undefined || catalog === undefined) return;
+  const catalogue = model.state?.catalogue;
+  if (editor === undefined || catalogue === undefined) return;
 
   // Works appear under each of their authors; collect each edition once.
   const seen = new Set<Work>();
   const items: (vscode.QuickPickItem & { edition: Edition })[] = [];
-  for (const author of catalog.authors) {
+  for (const author of catalogue.authors) {
     for (const work of author.works) {
       if (seen.has(work)) continue;
       seen.add(work);

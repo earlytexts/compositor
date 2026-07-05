@@ -1,8 +1,9 @@
 {
   "name": "compositor",
+  "repository": "https://github.com/earlytexts/compositor",
   "displayName": "Early Text Compositor",
   "description": "A VSCode extension for contributing to the Early Text Corpus",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "earlytexts",
   "license": "MIT",
   "type": "module",
@@ -95,6 +96,17 @@
         "category": "Compositor"
       },
       {
+        "command": "compositor.suggestMarkup",
+        "title": "Suggest Markup…",
+        "category": "Compositor",
+        "icon": "$(lightbulb-sparkle)"
+      },
+      {
+        "command": "compositor.clearSuggestions",
+        "title": "Clear Markup Suggestions",
+        "category": "Compositor"
+      },
+      {
         "command": "compositor.compareEditions",
         "title": "Compare Editions…",
         "category": "Compositor",
@@ -177,6 +189,11 @@
           "command": "compositor.replaceInScope",
           "when": "resourceExtname == .mit",
           "group": "compositor"
+        },
+        {
+          "command": "compositor.suggestMarkup",
+          "when": "resourceExtname == .mit",
+          "group": "compositor"
         }
       ],
       "commandPalette": [
@@ -218,11 +235,12 @@
     "watch": "node esbuild.mjs --watch",
     "check": "tsc --noEmit",
     "test": "vitest run",
-    "package": "vsce package --no-dependencies"
+    "package": "vsce package --no-dependencies --out build/compositor.vsix"
   },
   "devDependencies": {
     "@types/node": "^25.5.2",
     "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.28.0",
     "typescript": "^6.0.2",
     "vitest": "^3.0.0"

@@ -25,6 +25,10 @@ import { fixFormatting } from "./commands/fixFormatting.ts";
 import { insertBorrowedRef } from "./commands/insertBorrowedRef.ts";
 import { compareEditions, compareWithNext } from "./commands/compareEditions.ts";
 import { replaceInScope } from "./commands/replaceInScope.ts";
+import {
+  createSuggestionController,
+  type SuggestionController,
+} from "./commands/suggestMarkup.ts";
 
 /** The first workspace folder that looks like the corpus (has data/authors),
  * honouring the compositor.corpusRoot setting. */
@@ -39,7 +43,7 @@ const findCorpusRoot = async (): Promise<string | undefined> => {
       : `${folder.uri.fsPath}/${configured}`;
     const authors = await nodeCorpusFs.stat(`${root}/data/authors`);
     // Canonicalised, so the model's precompiled-document keys line up with the
-    // paths buildCatalog resolves internally.
+    // paths buildCatalogue resolves internally.
     if (authors !== null && !authors.isFile) {
       return await nodeCorpusFs.realPath(root);
     }
@@ -51,6 +55,12 @@ export const activate = async (
   context: vscode.ExtensionContext,
 ): Promise<void> => {
   let model: CorpusModel | undefined;
+
+  const suggestions: SuggestionController = createSuggestionController(
+    () => model,
+    context,
+  );
+  context.subscriptions.push({ dispose: () => suggestions.dispose() });
 
   const tree = createCorpusTree(() => model);
   const view = vscode.window.createTreeView("compositor.corpusBrowser", {
@@ -85,6 +95,7 @@ export const activate = async (
     context.subscriptions.push(
       { dispose: () => model?.dispose() },
       model.onDidChange(updateView),
+      model.onDidChange(() => suggestions.onCorpusChanged()),
     );
     registerDiagnostics(model, context);
     updateView();
@@ -139,6 +150,16 @@ export const activate = async (
     command(
       "compositor.replaceInScope",
       () => withModel(replaceInScope),
+    ),
+    // These attach the model on first use (via withModel) so the controller's
+    // getModel closure always sees it, then delegate to the controller.
+    command(
+      "compositor.suggestMarkup",
+      () => withModel(() => suggestions.configure()),
+    ),
+    command(
+      "compositor.clearSuggestions",
+      () => suggestions.clear(),
     ),
     command(
       "compositor.compareEditions",

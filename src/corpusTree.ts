@@ -12,7 +12,7 @@
  */
 
 import * as vscode from "vscode";
-import type { Author, Catalog, Edition, Work } from "@earlytexts/corpus";
+import type { Author, Catalogue, Edition, Work } from "@earlytexts/corpus";
 import type { MarkitDocument } from "@earlytexts/markit";
 import type { CorpusModel } from "./corpusModel.ts";
 
@@ -54,9 +54,9 @@ export const authorPath = (root: string, author: Author): string =>
 
 /** The absolute path of an edition's source .mit file, from the catalogue. */
 export const editionPath = (
-  catalog: Catalog,
+  catalogue: Catalogue,
   edition: Edition,
-): string | undefined => catalog.sources.get(edition.document);
+): string | undefined => catalogue.sources.get(edition.document);
 
 /**
  * Every edition in the catalogue, keyed by its composed document. A borrowed
@@ -65,10 +65,10 @@ export const editionPath = (
  * recover the edition — and its work — from a collection's spliced-in children.
  */
 const editionsByDocument = (
-  catalog: Catalog,
+  catalogue: Catalogue,
 ): Map<MarkitDocument, { edition: Edition; work: Work }> => {
   const map = new Map<MarkitDocument, { edition: Edition; work: Work }>();
-  for (const author of catalog.authors) {
+  for (const author of catalogue.authors) {
     for (const work of author.works) {
       for (const edition of work.editions) {
         map.set(edition.document, { edition, work });
@@ -110,13 +110,13 @@ export const createCorpusTree = (
 
   // The document→edition lookup, cached per catalogue (rebuilt on reload).
   let cached:
-    | { catalog: Catalog; lookup: ReturnType<typeof editionsByDocument> }
+    | { catalogue: Catalogue; lookup: ReturnType<typeof editionsByDocument> }
     | undefined;
   const lookupFor = (
-    catalog: Catalog,
+    catalogue: Catalogue,
   ): ReturnType<typeof editionsByDocument> => {
-    if (cached?.catalog !== catalog) {
-      cached = { catalog, lookup: editionsByDocument(catalog) };
+    if (cached?.catalogue !== catalogue) {
+      cached = { catalogue, lookup: editionsByDocument(catalogue) };
     }
     return cached.lookup;
   };
@@ -126,10 +126,10 @@ export const createCorpusTree = (
     refresh: () => emitter.fire(undefined),
 
     getChildren: (node?: TreeNode): TreeNode[] => {
-      const catalog = getModel()?.state?.catalog;
-      if (catalog === undefined) return [];
+      const catalogue = getModel()?.state?.catalogue;
+      if (catalogue === undefined) return [];
       if (node === undefined) {
-        return letterGroups(catalog.authors);
+        return letterGroups(catalogue.authors);
       }
       if (node.kind === "letter") {
         return node.authors.map((author) => ({ kind: "author", author }));
@@ -149,7 +149,7 @@ export const createCorpusTree = (
         }));
       }
       if (node.kind === "edition" || node.kind === "borrowed") {
-        return borrowedChildren(node.edition, lookupFor(catalog))
+        return borrowedChildren(node.edition, lookupFor(catalogue))
           .map(({ edition, work }) => ({ kind: "borrowed", edition, work }));
       }
       return [];
@@ -196,10 +196,10 @@ export const createCorpusTree = (
         item.tooltip = work.title;
         return item;
       }
-      const catalog = model.state!.catalog;
+      const catalogue = model.state!.catalogue;
       if (node.kind === "borrowed") {
         const { edition, work } = node;
-        const nested = borrowedChildren(edition, lookupFor(catalog)).length > 0;
+        const nested = borrowedChildren(edition, lookupFor(catalogue)).length > 0;
         // The title, not the year: unlike a normal edition node, a borrowed one
         // has no work-title parent above it, so it must name the text itself.
         const item = new vscode.TreeItem(
@@ -216,14 +216,14 @@ export const createCorpusTree = (
           work.editions.indexOf(edition) < work.editions.length - 1;
         item.contextValue = hasNext ? "borrowedHasNext" : "borrowed";
         item.tooltip = `${edition.title} (borrowed into this collection)`;
-        const path = editionPath(catalog, edition);
+        const path = editionPath(catalogue, edition);
         if (path !== undefined) item.command = openCommand(path);
         return item;
       }
       const { edition, work } = node;
       const canonical = edition.slug === work.canonicalSlug;
       // A collection edition borrows other editions; expand to show them.
-      const borrows = borrowedChildren(edition, lookupFor(catalog)).length > 0;
+      const borrows = borrowedChildren(edition, lookupFor(catalogue)).length > 0;
       const item = new vscode.TreeItem(
         edition.slug,
         borrows
@@ -239,7 +239,7 @@ export const createCorpusTree = (
       item.tooltip = canonical
         ? `${edition.title} (canonical edition)`
         : edition.title;
-      const path = editionPath(catalog, edition);
+      const path = editionPath(catalogue, edition);
       if (path !== undefined) item.command = openCommand(path);
       return item;
     },

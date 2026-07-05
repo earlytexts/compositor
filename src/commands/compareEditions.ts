@@ -6,19 +6,19 @@
  */
 
 import * as vscode from "vscode";
-import type { Catalog, Edition, Work } from "@earlytexts/corpus";
+import type { Catalogue, Edition, Work } from "@earlytexts/corpus";
 import type { CorpusModel } from "../corpusModel.ts";
 import { editionPath, type TreeNode } from "../corpusTree.ts";
 
 /** Open the native diff view on two editions (left = base), or explain why not. */
 const openDiff = async (
-  catalog: Catalog,
+  catalogue: Catalogue,
   work: Work,
   left: Edition,
   right: Edition,
 ): Promise<void> => {
-  const leftPath = editionPath(catalog, left);
-  const rightPath = editionPath(catalog, right);
+  const leftPath = editionPath(catalogue, left);
+  const rightPath = editionPath(catalogue, right);
   if (leftPath === undefined || rightPath === undefined) {
     void vscode.window.showWarningMessage(
       "Compositor: could not locate the source file for one of the editions.",
@@ -70,8 +70,8 @@ export const compareEditions = async (
   model: CorpusModel,
   node?: TreeNode,
 ): Promise<void> => {
-  const catalog = model.state?.catalog;
-  if (catalog === undefined) return;
+  const catalogue = model.state?.catalogue;
+  if (catalogue === undefined) return;
 
   // Fix the work from the invoking node, or ask which one. A borrowed node
   // carries its edition's own work, so it fixes the comparison like an edition.
@@ -80,7 +80,7 @@ export const compareEditions = async (
     ? node.work
     : undefined;
   if (work === undefined) {
-    const works = comparableWorks(catalog.authors);
+    const works = comparableWorks(catalogue.authors);
     if (works.length === 0) {
       void vscode.window.showInformationMessage(
         "Compositor: no work has two editions to compare.",
@@ -118,7 +118,7 @@ export const compareEditions = async (
   );
   if (right === undefined) return;
 
-  await openDiff(catalog, work, left, right);
+  await openDiff(catalogue, work, left, right);
 };
 
 /**
@@ -130,9 +130,9 @@ export const compareWithNext = async (
   model: CorpusModel,
   node?: TreeNode,
 ): Promise<void> => {
-  const catalog = model.state?.catalog;
+  const catalogue = model.state?.catalogue;
   if (
-    catalog === undefined ||
+    catalogue === undefined ||
     (node?.kind !== "edition" && node?.kind !== "borrowed")
   ) return;
   const { work, edition } = node;
@@ -144,5 +144,5 @@ export const compareWithNext = async (
     );
     return;
   }
-  await openDiff(catalog, work, edition, next);
+  await openDiff(catalogue, work, edition, next);
 };

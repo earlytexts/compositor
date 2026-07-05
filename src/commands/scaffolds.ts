@@ -103,7 +103,7 @@ export const newAuthor = async (model: CorpusModel): Promise<void> => {
 const pickAuthor = async (
   model: CorpusModel,
 ): Promise<Author | undefined> => {
-  const authors = model.state?.catalog.authors ?? [];
+  const authors = model.state?.catalogue.authors ?? [];
   const picked = await vscode.window.showQuickPick(
     authors.map((author) => ({
       label: `${author.surname}, ${author.forename}`.replace(/, $/, ""),

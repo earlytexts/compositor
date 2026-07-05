@@ -11,7 +11,7 @@
  */
 
 import * as vscode from "vscode";
-import type { Author, Catalog, Edition, Work } from "@earlytexts/corpus";
+import type { Author, Catalogue, Edition, Work } from "@earlytexts/corpus";
 import { normalizePath } from "@earlytexts/corpus";
 import type { CorpusModel } from "../corpusModel.ts";
 import { editionPath } from "../corpusTree.ts";
@@ -19,14 +19,14 @@ import { replaceWholeWord } from "../wholeWord.ts";
 
 /** The work (and edition) whose source file is `filePath`, if any. */
 const findEdition = (
-  catalog: Catalog,
+  catalogue: Catalogue,
   filePath: string,
 ): { work: Work; edition: Edition } | undefined => {
   const target = normalizePath(filePath);
-  for (const author of catalog.authors) {
+  for (const author of catalogue.authors) {
     for (const work of author.works) {
       for (const edition of work.editions) {
-        if (editionPath(catalog, edition) === target) return { work, edition };
+        if (editionPath(catalogue, edition) === target) return { work, edition };
       }
     }
   }
@@ -34,11 +34,11 @@ const findEdition = (
 };
 
 /** Every work by any of `slugs`, each once, in author order. */
-const worksByAuthors = (catalog: Catalog, slugs: string[]): Work[] => {
+const worksByAuthors = (catalogue: Catalogue, slugs: string[]): Work[] => {
   const seen = new Set<Work>();
   const works: Work[] = [];
   for (const slug of slugs) {
-    const author: Author | undefined = catalog.byAuthor.get(slug);
+    const author: Author | undefined = catalogue.byAuthor.get(slug);
     for (const work of author?.works ?? []) {
       if (seen.has(work)) continue;
       seen.add(work);
@@ -49,11 +49,11 @@ const worksByAuthors = (catalog: Catalog, slugs: string[]): Work[] => {
 };
 
 /** The edition source files of `works`, deduplicated, in a stable order. */
-const editionFiles = (catalog: Catalog, works: Work[]): string[] => {
+const editionFiles = (catalogue: Catalogue, works: Work[]): string[] => {
   const paths = new Set<string>();
   for (const work of works) {
     for (const edition of work.editions) {
-      const path = editionPath(catalog, edition);
+      const path = editionPath(catalogue, edition);
       if (path !== undefined) paths.add(path);
     }
   }
@@ -62,10 +62,10 @@ const editionFiles = (catalog: Catalog, works: Work[]): string[] => {
 
 export const replaceInScope = async (model: CorpusModel): Promise<void> => {
   const editor = vscode.window.activeTextEditor;
-  const catalog = model.state?.catalog;
-  if (editor === undefined || catalog === undefined) return;
+  const catalogue = model.state?.catalogue;
+  if (editor === undefined || catalogue === undefined) return;
 
-  const found = findEdition(catalog, editor.document.uri.fsPath);
+  const found = findEdition(catalogue, editor.document.uri.fsPath);
   if (found === undefined) {
     void vscode.window.showWarningMessage(
       "Compositor: the active file isn't a known edition — open an edition " +
@@ -103,9 +103,9 @@ export const replaceInScope = async (model: CorpusModel): Promise<void> => {
 
   // Scope: this work, or every work by its author(s). The author option is
   // only worth offering when it reaches beyond this single work.
-  const authorWorks = worksByAuthors(catalog, edition.authorSlugs);
-  const workFiles = editionFiles(catalog, [work]);
-  const authorFiles = editionFiles(catalog, authorWorks);
+  const authorWorks = worksByAuthors(catalogue, edition.authorSlugs);
+  const workFiles = editionFiles(catalogue, [work]);
+  const authorFiles = editionFiles(catalogue, authorWorks);
   const scopes: (vscode.QuickPickItem & { files: string[] })[] = [
     {
       label: "This work",
@@ -117,7 +117,7 @@ export const replaceInScope = async (model: CorpusModel): Promise<void> => {
     scopes.push({
       label: "This author",
       description:
-        `${authorNames(catalog, edition.authorSlugs)} · ${
+        `${authorNames(catalogue, edition.authorSlugs)} · ${
           plural(authorWorks.length, "work")
         }, ${plural(authorFiles.length, "edition")}`,
       files: authorFiles,
@@ -194,10 +194,10 @@ const plural = (n: number, noun: string): string =>
   `${n} ${noun}${n === 1 ? "" : "s"}`;
 
 /** "David Hume", or "Astell & Norris" for a co-authored work. */
-const authorNames = (catalog: Catalog, slugs: string[]): string =>
+const authorNames = (catalogue: Catalogue, slugs: string[]): string =>
   slugs
     .map((slug) => {
-      const author = catalog.byAuthor.get(slug);
+      const author = catalogue.byAuthor.get(slug);
       return author === undefined
         ? slug
         : `${author.forename} ${author.surname}`.trim();

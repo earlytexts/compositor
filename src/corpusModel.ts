@@ -16,11 +16,11 @@
 import * as vscode from "vscode";
 import { compile } from "@earlytexts/markit";
 import {
-  buildCatalog,
-  type Catalog,
+  buildCatalogue,
+  type Catalogue,
   type CorpusFile,
   distReader,
-  loadCatalog,
+  loadCatalogue,
   loadCorpus,
   normalizePath,
   validateCorpus,
@@ -31,7 +31,7 @@ import {
 import { nodeCorpusFs } from "@earlytexts/corpus/fs";
 
 export type CorpusState = {
-  catalog: Catalog;
+  catalogue: Catalogue;
   /** Catalogue-build warnings (unresolved children, missing authors, …). */
   warnings: string[];
   violations: Violation[];
@@ -70,31 +70,31 @@ export const createCorpusModel = (root: string): CorpusModel => {
    * documents carry no source ranges — so violations start empty and the full
    * load, which follows immediately, replaces the whole state. The wire format
    * keeps paths relative to the corpus root; the tree expects the absolute
-   * paths buildCatalog produces, so absolutise them on the way in. A missing or
+   * paths buildCatalogue produces, so absolutise them on the way in. A missing or
    * partial dist/ (e.g. a write-back cut off mid-way) is simply skipped.
    */
   const loadFromCache = async (): Promise<void> => {
     try {
-      const { catalog, warnings } = await loadCatalog(
+      const { catalogue, warnings } = await loadCatalogue(
         distReader(nodeCorpusFs),
         root,
       );
       const seen = new Set<Work>();
-      for (const author of catalog.authors) {
+      for (const author of catalogue.authors) {
         for (const work of author.works) {
           if (seen.has(work)) continue; // co-authored works are shared
           seen.add(work);
           work.dir = `${root}/${work.dir}`;
           for (const edition of work.editions) {
-            const source = catalog.sources.get(edition.document);
+            const source = catalogue.sources.get(edition.document);
             if (source !== undefined) {
-              catalog.sources.set(edition.document, `${root}/${source}`);
+              catalogue.sources.set(edition.document, `${root}/${source}`);
             }
           }
         }
       }
       if (state === undefined) {
-        state = { catalog, warnings, violations: [] };
+        state = { catalogue, warnings, violations: [] };
         emitter.fire();
       }
     } catch {
@@ -141,21 +141,21 @@ export const createCorpusModel = (root: string): CorpusModel => {
         root,
       });
       // The catalogue reuses the documents compiled above (keyed the way
-      // buildCatalog looks them up: normalised absolute paths).
+      // buildCatalogue looks them up: normalised absolute paths).
       const precompiled = new Map(
         list.map((f) => [normalizePath(`${root}/data/${f.path}`), f.doc]),
       );
-      const { catalog, warnings } = await buildCatalog(
+      const { catalogue, warnings } = await buildCatalogue(
         nodeCorpusFs,
         root,
         precompiled,
       );
-      state = { catalog, warnings, violations };
+      state = { catalogue, warnings, violations };
       // Refresh the compiled dist/ in the background (next startup's instant
       // tree, and the computer's dev input). Writes are chained so overlapping
       // loads can never interleave inside dist/; a failure only costs the cache.
       distWrite = distWrite
-        .then(() => writeDist(nodeCorpusFs, root, catalog, warnings))
+        .then(() => writeDist(nodeCorpusFs, root, catalogue, warnings))
         .then(() => {}, () => {});
     } catch (error) {
       state = undefined;

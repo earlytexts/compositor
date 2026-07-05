@@ -28,12 +28,12 @@ welcome view's Clone Corpus button, which hands off to VSCode's own git.clone.
   — so contributors need nothing beyond VSCode (no Deno, no npm).
 - **One compile pass per change.** `src/corpusModel.ts` compiles the corpus
   once, feeds the compiled files to the validation rules, and hands the same
-  documents to `buildCatalog` (its `precompiled` parameter) so the catalogue
+  documents to `buildCatalogue` (its `precompiled` parameter) so the catalogue
   composes without recompiling. A watcher on `data/**` recompiles just the
   saved `.mit` file (~1s round trip); non-file events trigger a full reload
   (~20s, cold-start cost).
 - **The compiled `dist/` masks the cold start.** At startup the model seeds
-  the tree from `dist/` via the corpus's `loadCatalog` (~0.5s) while the full
+  the tree from `dist/` via the corpus's `loadCatalogue` (~0.5s) while the full
   compile runs; diagnostics always wait for the compile (serialised documents
   carry no source ranges). Every completed load writes `dist/` back
   (`writeDist`, ~0.5s, chained so writes never interleave), so the cache — and
@@ -53,7 +53,29 @@ welcome view's Clone Corpus button, which hands off to VSCode's own git.clone.
 - `src/corpusTree.ts` — Corpus Browser tree data provider
 - `src/diagnostics.ts` — Problems-panel diagnostics + status bar
 - `src/templates.ts` — pure scaffold file builders (formatted, schema-correct)
-- `src/commands/` — scaffolds, fix formatting, insert borrowed reference
+- `src/suggestions.ts` — pure markup-suggestion helpers (categories, wrap text)
+- `src/hintOverrides.ts` — manual patches to the mined language lexicons
+- `src/commands/` — scaffolds, fix formatting, insert borrowed reference,
+  suggest markup
+
+## Markup suggestions
+
+`compositor.suggestMarkup` flags likely people, citations, and foreign text
+(Latin/French/Greek/…) in the open edition so a contributor can cycle them
+(F8, like any diagnostic) and mark each up with a quick fix — or ignore it.
+The finding is the corpus's: `buildHints`/`scanSource` in `@earlytexts/corpus`
+mine lexicons from the markup the corpus already carries (so suggestions
+improve as markup accumulates) and scan a file's raw source. This extension is
+only the editor surface — `src/commands/suggestMarkup.ts` owns the toggle
+picker, a dedicated Information-severity diagnostic collection (kept apart from
+validation, whose diagnostics share the "compositor" source, so the two never
+tangle), and the quick-fix code-action provider. Hints are cached and rebuilt
+only when the corpus model reloads; scanning is per-file and on-demand. Pure
+rules (category ⇄ suggestion mapping, wrap delimiters) live in
+`src/suggestions.ts` and are unit-tested; `test/suggestionsPipeline.test.ts`
+runs the whole mine→scan→filter→wrap path (see `vitest.config.ts`: markit must
+dedupe to one instance so its block `Symbol()`s compare equal across the
+corpus/markit boundary — the esbuild bundle gets this from preserveSymlinks).
 
 ## Corpus layout (what the tree and scaffolds produce)
 
