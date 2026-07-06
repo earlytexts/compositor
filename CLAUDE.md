@@ -21,22 +21,29 @@ welcome view's Clone Corpus button, which hands off to VSCode's own git.clone.
 - **Corpus logic is imported, never reimplemented.** `@earlytexts/corpus`
   (a `file:../corpus` dependency on the sibling checkout) exports the corpus's
   own catalogue build, metadata schema, path conventions, validation rules,
-  and the `dist/` read/write pair as runtime-neutral TypeScript (everything
+  and the `catalogue/` read/write pair as runtime-neutral logic (everything
   takes a `CorpusFs` port; the disk binding — `node:fs`-backed, shared with
-  the corpus's own Deno scripts — is `@earlytexts/corpus/fs`). esbuild bundles
-  it — with `preserveSymlinks`, since the corpus checkout has no node_modules
-  — so contributors need nothing beyond VSCode (no Deno, no npm).
+  the corpus's own Node scripts — is `nodeCorpusFs`, re-exported from the main
+  entry). esbuild bundles
+  it (with `preserveSymlinks`), so contributors need nothing beyond VSCode.
+  The corpus is a Node package with its own `node_modules`, so it carries its
+  own `@earlytexts/markit` copy; while it's a `file:` link (not yet a published,
+  hoistable npm dep) that copy would shadow ours and split markit into two
+  Symbol-incompatible instances, so `esbuild.mjs` aliases `@earlytexts/markit`
+  to this package's single copy (vitest does the same via `dedupe`). Once the
+  corpus is published to npm and its markit hoists to one shared copy, the alias
+  and `preserveSymlinks` become no-ops.
 - **One compile pass per change.** `src/corpusModel.ts` compiles the corpus
   once, feeds the compiled files to the validation rules, and hands the same
   documents to `buildCatalogue` (its `precompiled` parameter) so the catalogue
   composes without recompiling. A watcher on `data/**` recompiles just the
   saved `.mit` file (~1s round trip); non-file events trigger a full reload
   (~20s, cold-start cost).
-- **The compiled `dist/` masks the cold start.** At startup the model seeds
-  the tree from `dist/` via the corpus's `loadCatalogue` (~0.5s) while the full
+- **The compiled `catalogue/` masks the cold start.** At startup the model seeds
+  the tree from `catalogue/` via the corpus's `loadCatalogue` (~0.5s) while the full
   compile runs; diagnostics always wait for the compile (serialised documents
-  carry no source ranges). Every completed load writes `dist/` back
-  (`writeDist`, ~0.5s, chained so writes never interleave), so the cache — and
+  carry no source ranges). Every completed load writes `catalogue/` back
+  (`writeCatalogue`, ~0.5s, chained so writes never interleave), so the cache — and
   the computer's dev input — stays fresh.
 - **Clone Corpus** (welcome-view button / command) delegates to the built-in
   `git.clone` with the corpus URL; opening the clone activates the extension,
@@ -49,7 +56,7 @@ welcome view's Clone Corpus button, which hands off to VSCode's own git.clone.
 
 - `src/extension.ts` — activation (corpus-root detection), wiring, commands
 - `src/corpusModel.ts` — in-memory corpus: load/validate/catalogue + watcher
-  + dist/ cache (seed + write-back)
+  + catalogue/ cache (seed + write-back)
 - `src/corpusTree.ts` — Corpus Browser tree data provider
 - `src/diagnostics.ts` — Problems-panel diagnostics + status bar
 - `src/templates.ts` — pure scaffold file builders (formatted, schema-correct)

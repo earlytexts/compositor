@@ -246,7 +246,7 @@
     "vitest": "^3.0.0"
   },
   "dependencies": {
-    "@earlytexts/corpus": "file:../corpus",
-    "@earlytexts/markit": "^3.2.2"
+    "@earlytexts/corpus": "^0.5.0",
+    "@earlytexts/markit": "^3.4.1"
   }
 }

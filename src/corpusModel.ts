@@ -6,10 +6,10 @@
  * file, then re-runs validation and recomposes the catalogue, so a reload
  * costs a couple of seconds rather than the ~20s of a cold start.
  *
- * The cold start itself is masked by the corpus's compiled `dist/`: if it is
+ * The cold start itself is masked by the corpus's compiled `catalogue/`: if it is
  * present the tree shows from it immediately (no violations yet — serialised
  * documents carry no source ranges, so diagnostics always wait for the real
- * compile), and every completed load writes `dist/` back, keeping the cache —
+ * compile), and every completed load writes `catalogue/` back, keeping the cache —
  * which is also the computer's input — fresh for next time.
  */
 
@@ -18,17 +18,17 @@ import { compile } from "@earlytexts/markit";
 import {
   buildCatalogue,
   type Catalogue,
+  catalogueReader,
   type CorpusFile,
-  distReader,
   loadCatalogue,
   loadCorpus,
+  nodeCorpusFs,
   normalizePath,
   validateCorpus,
   type Violation,
   type Work,
-  writeDist,
+  writeCatalogue,
 } from "@earlytexts/corpus";
-import { nodeCorpusFs } from "@earlytexts/corpus/fs";
 
 export type CorpusState = {
   catalogue: Catalogue;
@@ -60,23 +60,23 @@ export const createCorpusModel = (root: string): CorpusModel => {
   /** Changes that arrived mid-load, replayed afterwards. undefined = idle. */
   let queuedFull = false;
   let queuedPaths: Set<string> | undefined;
-  /** The dist/ write-back chain (see load); serialises overlapping writes. */
-  let distWrite = Promise.resolve();
+  /** The catalogue/ write-back chain (see load); serialises overlapping writes. */
+  let catalogueWrite = Promise.resolve();
 
   /**
-   * Seed the tree from the compiled `dist/` (written by the corpus build or by
+   * Seed the tree from the compiled `catalogue/` (written by the corpus build or by
    * a previous session's write-back) so it shows in ~a second instead of after
    * the ~20s cold compile. Validation still needs the compile — serialised
    * documents carry no source ranges — so violations start empty and the full
    * load, which follows immediately, replaces the whole state. The wire format
    * keeps paths relative to the corpus root; the tree expects the absolute
    * paths buildCatalogue produces, so absolutise them on the way in. A missing or
-   * partial dist/ (e.g. a write-back cut off mid-way) is simply skipped.
+   * partial catalogue/ (e.g. a write-back cut off mid-way) is simply skipped.
    */
   const loadFromCache = async (): Promise<void> => {
     try {
       const { catalogue, warnings } = await loadCatalogue(
-        distReader(nodeCorpusFs),
+        catalogueReader(nodeCorpusFs),
         root,
       );
       const seen = new Set<Work>();
@@ -151,11 +151,11 @@ export const createCorpusModel = (root: string): CorpusModel => {
         precompiled,
       );
       state = { catalogue, warnings, violations };
-      // Refresh the compiled dist/ in the background (next startup's instant
+      // Refresh the compiled catalogue/ in the background (next startup's instant
       // tree, and the computer's dev input). Writes are chained so overlapping
-      // loads can never interleave inside dist/; a failure only costs the cache.
-      distWrite = distWrite
-        .then(() => writeDist(nodeCorpusFs, root, catalogue, warnings))
+      // loads can never interleave inside catalogue/; a failure only costs the cache.
+      catalogueWrite = catalogueWrite
+        .then(() => writeCatalogue(nodeCorpusFs, root, catalogue, warnings))
         .then(() => {}, () => {});
     } catch (error) {
       state = undefined;

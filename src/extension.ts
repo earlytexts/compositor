@@ -14,7 +14,7 @@ import * as vscode from "vscode";
 import { type CorpusModel, createCorpusModel } from "./corpusModel.ts";
 import { createCorpusTree, type TreeNode } from "./corpusTree.ts";
 import { registerDiagnostics } from "./diagnostics.ts";
-import { nodeCorpusFs } from "@earlytexts/corpus/fs";
+import { nodeCorpusFs } from "@earlytexts/corpus";
 import {
   newAuthor,
   newEdition,
@@ -122,7 +122,7 @@ export const activate = async (
     // Delegates to the built-in git extension: its clone command picks the
     // destination, shows progress, and offers to open the result — which
     // activates this extension (workspaceContains:data/authors). No build step
-    // is needed: the model compiles in memory, and its first load writes dist/.
+    // is needed: the model compiles in memory, and its first load writes catalogue/.
     command(
       "compositor.cloneCorpus",
       () =>
