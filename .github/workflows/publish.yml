@@ -1,0 +1,55 @@
+name: "Publish"
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - uses: "actions/checkout@v6"
+
+      - name: "Setup Node.js"
+        uses: "actions/setup-node@v6"
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: "Install dependencies"
+        run: "npm ci"
+
+      - name: "Typecheck"
+        run: "npm run check"
+
+      - name: "Test"
+        run: "npm test"
+
+      - name: "Check if version is new"
+        id: "check"
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          PUBLISHED=$(curl -s -X POST \
+            "https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json;api-version=3.0-preview.1" \
+            -d '{"filters":[{"criteria":[{"filterType":7,"value":"earlytexts.compositor"}]}],"flags":512}' \
+            | jq -r '.results[0].extensions[0].versions[0].version // "0.0.0"')
+          echo "Current: $CURRENT, Published: $PUBLISHED"
+          if [ "$CURRENT" != "$PUBLISHED" ]; then
+            echo "publish=true" >> $GITHUB_OUTPUT
+          else
+            echo "publish=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: "Build extension bundle"
+        if: "steps.check.outputs.publish == 'true'"
+        run: "npm run compile"
+
+      - name: "Publish to VS Code Marketplace"
+        if: "steps.check.outputs.publish == 'true'"
+        run: "npx vsce publish --no-dependencies"
+        env:
+          VSCE_PAT: "${{ secrets.VSCE_PAT }}"

@@ -14,7 +14,7 @@ welcome view's Clone Corpus button, which hands off to VSCode's own git.clone.
 ## Key decisions
 
 - **Standalone extension** with `extensionDependencies` on
-  `earlytexts.vscode-markit` (which owns syntax highlighting, per-file live
+  `earlytexts.markit-language` (which owns syntax highlighting, per-file live
   compile errors, formatting, and preview). The Compositor adds only the
   corpus layer, and suppresses its own copy of compile errors for open
   documents so the two never double-report.

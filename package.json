@@ -1,12 +1,33 @@
 {
   "name": "compositor",
-  "repository": "https://github.com/earlytexts/compositor",
-  "displayName": "Early Text Compositor",
-  "description": "A VSCode extension for contributing to the Early Text Corpus",
-  "version": "0.2.0",
   "publisher": "earlytexts",
+  "displayName": "Early Text Compositor",
+  "version": "0.2.0",
+  "description": "A VSCode extension for contributing to the Early Text Corpus",
   "license": "MIT",
+  "repository": "https://github.com/earlytexts/compositor",
   "type": "module",
+  "icon": "./media/etc-logo.png",
+  "main": "./dist/extension.cjs",
+  "scripts": {
+    "compile": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "package": "vsce package --no-dependencies --out build/compositor.vsix"
+  },
+  "dependencies": {
+    "@earlytexts/corpus": "^0.5.0",
+    "@earlytexts/markit": "^3.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.0",
+    "typescript": "^6.0.2",
+    "vitest": "^3.0.0"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -16,9 +37,8 @@
   "activationEvents": [
     "workspaceContains:data/authors"
   ],
-  "main": "./dist/extension.cjs",
   "extensionDependencies": [
-    "earlytexts.vscode-markit"
+    "earlytexts.markit-language"
   ],
   "contributes": {
     "viewsContainers": {
@@ -229,24 +249,5 @@
         }
       }
     }
-  },
-  "scripts": {
-    "compile": "node esbuild.mjs",
-    "watch": "node esbuild.mjs --watch",
-    "check": "tsc --noEmit",
-    "test": "vitest run",
-    "package": "vsce package --no-dependencies --out build/compositor.vsix"
-  },
-  "devDependencies": {
-    "@types/node": "^25.5.2",
-    "@types/vscode": "^1.85.0",
-    "@vscode/vsce": "^3.9.2",
-    "esbuild": "^0.28.0",
-    "typescript": "^6.0.2",
-    "vitest": "^3.0.0"
-  },
-  "dependencies": {
-    "@earlytexts/corpus": "^0.5.0",
-    "@earlytexts/markit": "^3.4.1"
   }
 }
