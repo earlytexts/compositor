@@ -1,16 +1,21 @@
 name: "Publish"
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Test"]
+    types: ["completed"]
     branches: ["main"]
-  workflow_dispatch:
 
 jobs:
   publish:
+    if: "github.event.workflow_run.conclusion == 'success'"
     runs-on: "ubuntu-latest"
 
     steps:
-      - uses: "actions/checkout@v6"
+      - name: "Clone repository"
+        uses: "actions/checkout@v6"
+        with:
+          ref: "${{ github.event.workflow_run.head_sha }}"
 
       - name: "Setup Node.js"
         uses: "actions/setup-node@v6"
