@@ -2,7 +2,7 @@
  * Activation and wiring. The extension assumes the user has cloned the corpus
  * themselves and opened VSCode in it (or set compositor.corpusRoot to its
  * workspace-relative path); git stays in the user's hands. Everything runs
- * in-process — corpus logic is bundled from @earlytexts/corpus, so
+ * in-process — corpus logic is bundled from @jsr/earlytexts__corpus, so
  * contributors need nothing beyond VSCode.
  *
  * Views and commands are always registered; the corpus model attaches when a
@@ -14,7 +14,7 @@ import * as vscode from "vscode";
 import { type CorpusModel, createCorpusModel } from "./corpusModel.ts";
 import { createCorpusTree, type TreeNode } from "./corpusTree.ts";
 import { registerDiagnostics } from "./diagnostics.ts";
-import { nodeCorpusFs } from "@earlytexts/corpus";
+import { nodeCorpusFs } from "@jsr/earlytexts__corpus";
 import {
   newAuthor,
   newEdition,

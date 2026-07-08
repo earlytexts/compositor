@@ -1,13 +1,13 @@
 /**
  * The suggestion pipeline the controller runs, minus the editor: build the
  * lexicons from a catalogue, scan a source, keep the enabled categories, and
- * apply each fix. Proves the @earlytexts/corpus wiring resolves from the
+ * apply each fix. Proves the @jsr/earlytexts__corpus wiring resolves from the
  * compositor and that the category filter and wrap agree with the scanner.
  */
 
 import { describe, expect, it } from "vitest";
-import { compile } from "@earlytexts/markit";
-import { buildHints, type Catalogue, scanSource } from "@earlytexts/corpus";
+import { compile } from "@jsr/earlytexts__markit";
+import { buildHints, type Catalogue, scanSource } from "@jsr/earlytexts__corpus";
 import { suggestionKey, wrapText } from "../src/suggestions.ts";
 import { hintOverrides } from "../src/hintOverrides.ts";
 

@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { MarkupSuggestion } from "@earlytexts/corpus";
+import type { MarkupSuggestion } from "@jsr/earlytexts__corpus";
 import {
   categoriesFor,
   categoryKey,

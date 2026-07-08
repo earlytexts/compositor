@@ -11,8 +11,8 @@
  */
 
 import * as vscode from "vscode";
-import type { Author, Catalogue, Edition, Work } from "@earlytexts/corpus";
-import { normalizePath } from "@earlytexts/corpus";
+import type { Author, Catalogue, Edition, Work } from "@jsr/earlytexts__corpus";
+import { normalizePath } from "@jsr/earlytexts__corpus";
 import type { CorpusModel } from "../corpusModel.ts";
 import { editionPath } from "../corpusTree.ts";
 import { replaceWholeWord } from "../wholeWord.ts";

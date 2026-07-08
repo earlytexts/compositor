@@ -14,7 +14,7 @@
  */
 
 import * as vscode from "vscode";
-import { compile } from "@earlytexts/markit";
+import { compile } from "@jsr/earlytexts__markit";
 import {
   buildCatalogue,
   type Catalogue,
@@ -28,7 +28,7 @@ import {
   type Violation,
   type Work,
   writeCatalogue,
-} from "@earlytexts/corpus";
+} from "@jsr/earlytexts__corpus";
 
 export type CorpusState = {
   catalogue: Catalogue;

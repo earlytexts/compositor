@@ -6,14 +6,14 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { compile, format } from "@earlytexts/markit";
+import { compile, format } from "@jsr/earlytexts__markit";
 import {
   loadCorpus,
   rules,
   validateCorpus,
   type Violation,
-} from "@earlytexts/corpus";
-import { CORPUS_ROOT, corpus, memoryCorpus } from "@earlytexts/corpus/harness";
+} from "@jsr/earlytexts__corpus";
+import { CORPUS_ROOT, corpus, memoryCorpus } from "@jsr/earlytexts__corpus/harness";
 import { authorFile, editionFile, stubFile } from "../src/templates.ts";
 
 const author = authorFile({

@@ -5,7 +5,7 @@
  * shapes, and corpus/tests/harness.ts for the same contract in test form).
  */
 
-import { format } from "@earlytexts/markit";
+import { format } from "@jsr/earlytexts__markit";
 
 type Scalar = string | number | boolean;
 

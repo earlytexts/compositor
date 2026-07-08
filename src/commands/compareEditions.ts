@@ -6,7 +6,7 @@
  */
 
 import * as vscode from "vscode";
-import type { Catalogue, Edition, Work } from "@earlytexts/corpus";
+import type { Catalogue, Edition, Work } from "@jsr/earlytexts__corpus";
 import type { CorpusModel } from "../corpusModel.ts";
 import { editionPath, type TreeNode } from "../corpusTree.ts";
 

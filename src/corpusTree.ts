@@ -12,8 +12,8 @@
  */
 
 import * as vscode from "vscode";
-import type { Author, Catalogue, Edition, Work } from "@earlytexts/corpus";
-import type { MarkitDocument } from "@earlytexts/markit";
+import type { Author, Catalogue, Edition, Work } from "@jsr/earlytexts__corpus";
+import type { MarkitDocument } from "@jsr/earlytexts__markit";
 import type { CorpusModel } from "./corpusModel.ts";
 
 export type TreeNode =
