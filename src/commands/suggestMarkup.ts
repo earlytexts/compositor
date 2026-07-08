@@ -23,14 +23,14 @@
  */
 
 import * as vscode from "vscode";
-import { compile } from "@earlytexts/markit";
+import { compile } from "@jsr/earlytexts__markit";
 import {
   buildHints,
   type Catalogue,
   type Hints,
   type MarkupSuggestion,
   scanSource,
-} from "@earlytexts/corpus";
+} from "@jsr/earlytexts__corpus";
 import type { CorpusModel } from "../corpusModel.ts";
 import { hintOverrides } from "../hintOverrides.ts";
 import {

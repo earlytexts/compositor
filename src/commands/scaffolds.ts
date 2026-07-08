@@ -7,8 +7,8 @@
  */
 
 import * as vscode from "vscode";
-import type { Author, Work } from "@earlytexts/corpus";
-import { nodeCorpusFs, YEAR } from "@earlytexts/corpus";
+import type { Author, Work } from "@jsr/earlytexts__corpus";
+import { nodeCorpusFs, YEAR } from "@jsr/earlytexts__corpus";
 import type { CorpusModel } from "../corpusModel.ts";
 import type { TreeNode } from "../corpusTree.ts";
 import { authorFile, editionFile, stubFile } from "../templates.ts";

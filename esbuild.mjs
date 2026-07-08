@@ -1,7 +1,4 @@
 import * as esbuild from "esbuild";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
 
 const watch = process.argv.includes("--watch");
 
@@ -17,19 +14,15 @@ const buildOptions = {
   target: "node18",
   sourcemap: true,
   minify: false,
-  // @earlytexts/corpus is a file: link to the sibling checkout; resolve its
-  // imports through the symlink so they find this package's node_modules.
-  preserveSymlinks: true,
-  // The corpus is a Node package now, so it carries its own
-  // node_modules/@earlytexts/markit. While it's a file: link (rather than a
-  // published npm dep that npm would hoist to one shared copy), preserveSymlinks
-  // lets the bundled corpus source resolve markit there — a SECOND copy — and
-  // markit tags blocks with Symbol()s that only compare equal within one
-  // instance, so the two halves of the suggestion pipeline would silently stop
-  // matching. Pin every markit import (ours and the corpus's) to this package's
-  // one copy. (Once the corpus is published to npm and hoisted, this alias — and
-  // preserveSymlinks — become harmless no-ops and can go.)
-  alias: { "@earlytexts/markit": require.resolve("@earlytexts/markit") },
+  // The corpus and markit come from JSR via its npm compatibility layer, under
+  // their real registry names (@jsr/earlytexts__*). Using those names directly
+  // (rather than npm aliases back to @earlytexts/*) is what lets npm hoist one
+  // shared markit copy: the corpus's own dependency is declared as
+  // @jsr/earlytexts__markit, and npm dedupes by package name. Both our imports
+  // and the bundled corpus's therefore resolve to that single copy. (This
+  // matters because markit tags compiled blocks with Symbol()s that only
+  // compare equal within one module instance; a second copy would silently
+  // break the markup-suggestion pipeline.)
 };
 
 if (watch) {

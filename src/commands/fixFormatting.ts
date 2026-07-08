@@ -5,9 +5,9 @@
  */
 
 import * as vscode from "vscode";
-import { format } from "@earlytexts/markit";
+import { format } from "@jsr/earlytexts__markit";
 import type { CorpusModel } from "../corpusModel.ts";
-import { nodeCorpusFs } from "@earlytexts/corpus";
+import { nodeCorpusFs } from "@jsr/earlytexts__corpus";
 
 export const fixFormatting = (model: CorpusModel): Thenable<void> =>
   vscode.window.withProgress(

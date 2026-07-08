@@ -19,7 +19,7 @@
  * accents/ligatures stripped) exactly as `foldWord` produces them.
  */
 
-import type { HintOverrides } from "@earlytexts/corpus";
+import type { HintOverrides } from "@jsr/earlytexts__corpus";
 
 export const hintOverrides: HintOverrides = {
   la: {

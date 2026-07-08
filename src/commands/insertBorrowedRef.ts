@@ -6,7 +6,7 @@
  */
 
 import * as vscode from "vscode";
-import type { Edition, Work } from "@earlytexts/corpus";
+import type { Edition, Work } from "@jsr/earlytexts__corpus";
 import type { CorpusModel } from "../corpusModel.ts";
 
 export const insertBorrowedRef = async (

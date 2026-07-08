@@ -8,7 +8,7 @@
  * rules are unit-testable without the editor API.
  */
 
-import type { MarkupSuggestion } from "@earlytexts/corpus";
+import type { MarkupSuggestion } from "@jsr/earlytexts__corpus";
 
 /** Display names for the language codes the corpus uses; anything unmapped
  * falls back to its uppercased code. */

@@ -7,7 +7,7 @@
  */
 
 import * as vscode from "vscode";
-import type { Violation } from "@earlytexts/corpus";
+import type { Violation } from "@jsr/earlytexts__corpus";
 import type { CorpusModel } from "./corpusModel.ts";
 
 const COMPILE_RULE = "every file compiles without errors";
