@@ -27,3 +27,6 @@ jobs:
 
       - name: "Run type check"
         run: "npm run check"
+
+      - name: "Format checking"
+        run: "npm run fmt:check"

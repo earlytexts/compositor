@@ -1,14 +1,14 @@
 /**
  * The vscode-free core of the markup-suggestion feature: the category model a
  * contributor toggles, and the pure mapping from a scanner suggestion to the
- * markup that would wrap it. The corpus's `scanSource` finds the candidates
+ * markup that would wrap it. `scanSource` (hints.ts) finds the candidates
  * (people, citations, foreign text) in an edition's source; this decides how
  * they are grouped in the toggle picker and what each "mark this up" quick fix
  * writes. Kept apart from the vscode wiring (commands/suggestMarkup.ts) so the
  * rules are unit-testable without the editor API.
  */
 
-import type { MarkupSuggestion } from "@jsr/earlytexts__corpus";
+import type { MarkupSuggestion } from "./hints.ts";
 
 /** Display names for the language codes the corpus uses; anything unmapped
  * falls back to its uppercased code. */
@@ -48,8 +48,8 @@ export const categoryLabel = (category: Category): string =>
   category.kind === "person"
     ? "People"
     : category.kind === "citation"
-    ? "Citations"
-    : languageLabel(category.code);
+      ? "Citations"
+      : languageLabel(category.code);
 
 /**
  * The categories on offer for a corpus, in a stable order: People, Citations,
@@ -93,7 +93,8 @@ export const wrapText = (suggestion: MarkupSuggestion): string => {
 
 /** The diagnostic message shown against a suggestion. */
 export const suggestionMessage = (suggestion: MarkupSuggestion): string => {
-  if (suggestion.type === "person") return "Possible name — mark up as a person?";
+  if (suggestion.type === "person")
+    return "Possible name — mark up as a person?";
   if (suggestion.type === "citation") {
     return "Possible citation — mark up as a reference?";
   }
@@ -108,7 +109,7 @@ export const fixTitle = (suggestion: MarkupSuggestion): string => {
     suggestion.type === "person"
       ? "a person"
       : suggestion.type === "citation"
-      ? "a citation"
-      : languageLabel(suggestion.lang ?? "")
+        ? "a citation"
+        : languageLabel(suggestion.lang ?? "")
   } (${open}…${close})`;
 };

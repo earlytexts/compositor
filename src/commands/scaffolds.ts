@@ -37,7 +37,9 @@ const askYear = (prompt: string) =>
   ask(prompt, {
     placeHolder: "e.g. 1748, 1742a, 1739-40",
     validateInput: (input) =>
-      YEAR.test(input) ? undefined : "Must be a year slug (1748, 1742a, 1739-40)",
+      YEAR.test(input)
+        ? undefined
+        : "Must be a year slug (1748, 1742a, 1739-40)",
   });
 
 const askNumber = (prompt: string, value?: string) =>
@@ -99,9 +101,7 @@ export const newAuthor = async (model: CorpusModel): Promise<void> => {
   );
 };
 
-const pickAuthor = async (
-  model: CorpusModel,
-): Promise<Author | undefined> => {
+const pickAuthor = async (model: CorpusModel): Promise<Author | undefined> => {
   const authors = model.state?.catalogue.authors ?? [];
   const picked = await vscode.window.showQuickPick(
     authors.map((author) => ({
@@ -118,9 +118,8 @@ export const newWork = async (
   model: CorpusModel,
   node?: TreeNode,
 ): Promise<void> => {
-  const author = node?.kind === "author"
-    ? node.author
-    : await pickAuthor(model);
+  const author =
+    node?.kind === "author" ? node.author : await pickAuthor(model);
   if (author === undefined) return;
 
   const slug = await ask("Work slug (the directory name, e.g. ehu)", {
@@ -183,7 +182,8 @@ export const newEdition = async (
       if (!YEAR.test(input)) {
         return "Must be a year slug (1748, 1742a, 1739-40)";
       }
-      const taken = work.editions.some((e) => e.slug === input) ||
+      const taken =
+        work.editions.some((e) => e.slug === input) ||
         (await nodeCorpusFs.stat(`${work.dir}/${input}.mit`)) !== null;
       return taken ? "That edition already exists" : undefined;
     },

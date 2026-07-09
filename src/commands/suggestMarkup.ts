@@ -2,7 +2,7 @@
  * Markup suggestions: a toggleable overlay that flags likely people,
  * citations, and foreign text in the open edition, so a contributor can cycle
  * through them (F8, like any diagnostic) and mark each up with a quick fix —
- * or leave it. The finding is the corpus's (`scanSource` over the whole-corpus
+ * or leave it. The finding is hints.ts's (`scanSource` over the whole-corpus
  * lexicons `buildHints` mines); this module is the editor surface for it.
  *
  * How it hangs together:
@@ -24,13 +24,13 @@
 
 import * as vscode from "vscode";
 import { compile } from "@jsr/earlytexts__markit";
+import type { Catalogue } from "@jsr/earlytexts__corpus";
 import {
   buildHints,
-  type Catalogue,
   type Hints,
   type MarkupSuggestion,
   scanSource,
-} from "@jsr/earlytexts__corpus";
+} from "../hints.ts";
 import type { CorpusModel } from "../corpusModel.ts";
 import { hintOverrides } from "../hintOverrides.ts";
 import {
@@ -88,7 +88,10 @@ export const createSuggestionController = (
     if (catalogue === undefined) return undefined;
     if (hints !== undefined && hintsFrom === catalogue) return hints;
     hints = await vscode.window.withProgress(
-      { location: vscode.ProgressLocation.Window, title: "Indexing corpus markup…" },
+      {
+        location: vscode.ProgressLocation.Window,
+        title: "Indexing corpus markup…",
+      },
       () => Promise.resolve(buildHints(catalogue, hintOverrides)),
     );
     hintsFrom = catalogue;
@@ -98,8 +101,9 @@ export const createSuggestionController = (
   /** Scan one document with the current hints and publish its diagnostics. */
   const scan = (document: vscode.TextDocument, active: Hints): void => {
     const [doc] = compile(document.getText());
-    const suggestions = scanSource(document.getText(), doc, active)
-      .filter((s) => enabled.has(suggestionKey(s)));
+    const suggestions = scanSource(document.getText(), doc, active).filter(
+      (s) => enabled.has(suggestionKey(s)),
+    );
     scanned.set(document.uri.fsPath, suggestions);
     collection.set(
       document.uri,
@@ -149,8 +153,8 @@ export const createSuggestionController = (
       return;
     }
     const categories = categoriesFor(active.languages.keys());
-    const items: (vscode.QuickPickItem & { category: Category })[] = categories
-      .map((category) => ({
+    const items: (vscode.QuickPickItem & { category: Category })[] =
+      categories.map((category) => ({
         label: categoryLabel(category),
         picked: enabled.has(categoryKey(category)),
         category,
@@ -204,7 +208,7 @@ export const createSuggestionController = (
         for (const diagnostic of ctx.diagnostics) {
           if (diagnostic.source !== SOURCE) continue;
           const suggestion = suggestions.find((s) =>
-            suggestionRange(s).isEqual(diagnostic.range)
+            suggestionRange(s).isEqual(diagnostic.range),
           );
           if (suggestion === undefined) continue;
 
@@ -214,15 +218,20 @@ export const createSuggestionController = (
           );
           one.diagnostics = [diagnostic];
           one.edit = new vscode.WorkspaceEdit();
-          one.edit.replace(document.uri, diagnostic.range, wrapText(suggestion));
+          one.edit.replace(
+            document.uri,
+            diagnostic.range,
+            wrapText(suggestion),
+          );
           actions.push(one);
 
           // Repeated names/citations: offer to mark every identical match at
           // once (same kind and same text — languages vary too much to batch).
           if (suggestion.type !== "language") {
-            const twins = suggestions.filter((s) =>
-              suggestionKey(s) === suggestionKey(suggestion) &&
-              s.text === suggestion.text
+            const twins = suggestions.filter(
+              (s) =>
+                suggestionKey(s) === suggestionKey(suggestion) &&
+                s.text === suggestion.text,
             );
             if (twins.length > 1) {
               const all = new vscode.CodeAction(
@@ -232,7 +241,11 @@ export const createSuggestionController = (
               all.diagnostics = [diagnostic];
               all.edit = new vscode.WorkspaceEdit();
               for (const twin of twins) {
-                all.edit.replace(document.uri, suggestionRange(twin), wrapText(twin));
+                all.edit.replace(
+                  document.uri,
+                  suggestionRange(twin),
+                  wrapText(twin),
+                );
               }
               actions.push(all);
             }

@@ -4,10 +4,10 @@
 
 - [x] Corpus Browser: authors → works → editions from catalogue metadata
 - [x] Open author files and editions from the tree; work stub on the context menu
-- [x] Corpus validation in the Problems panel (full rule set, shared with `deno task validate`)
+- [x] Corpus validation in the Problems panel (full rule set, shared with the corpus's `deno task test`)
 - [x] Incremental revalidation on save (~1s); status-bar summary and tree badge
 - [x] New Author / New Work / New Edition scaffolds (canonical, pre-formatted files)
-- [x] Corpus-wide Fix Formatting (equivalent of `deno task fix`)
+- [x] Corpus-wide Fix Formatting (equivalent of `deno task fmt`)
 - [x] Insert Borrowed Section Reference from a catalogue picker
 
 ## Next

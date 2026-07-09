@@ -133,7 +133,7 @@ export const createCorpusModel = (root: string): CorpusModel => {
         for (const path of paths ?? []) await refreshFile(path);
       }
       const list = [...files.values()].sort((a, b) =>
-        a.path.localeCompare(b.path)
+        a.path.localeCompare(b.path),
       );
       const violations = await validateCorpus({
         files: list,
@@ -156,7 +156,10 @@ export const createCorpusModel = (root: string): CorpusModel => {
       // loads can never interleave inside catalogue/; a failure only costs the cache.
       catalogueWrite = catalogueWrite
         .then(() => writeCatalogue(nodeCorpusFs, root, catalogue, warnings))
-        .then(() => {}, () => {});
+        .then(
+          () => {},
+          () => {},
+        );
     } catch (error) {
       state = undefined;
       const message = error instanceof Error ? error.message : String(error);

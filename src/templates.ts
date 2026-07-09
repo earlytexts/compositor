@@ -13,8 +13,8 @@ const tomlValue = (value: Scalar | Scalar[]): string =>
   Array.isArray(value)
     ? `[${value.map(tomlValue).join(", ")}]`
     : typeof value === "string"
-    ? JSON.stringify(value)
-    : String(value);
+      ? JSON.stringify(value)
+      : String(value);
 
 const document = (
   heading: string,

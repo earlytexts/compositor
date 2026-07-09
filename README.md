@@ -21,14 +21,14 @@ Compositor adds the corpus layer:
   starred). Clicking an author or edition opens its file; works expand to
   their editions, with the metadata stub on the context menu.
 - **Validation** — the corpus's full rule set (the same rules `deno task
-  validate` runs) published to the Problems panel, with a status-bar summary
+validate` runs) published to the Problems panel, with a status-bar summary
   and a badge on the tree. Saving a file revalidates in about a second; the
   initial load compiles the whole corpus and takes ~20s.
 - **Scaffolding** — New Author, New Work (with its first edition), and New
   Edition commands that prompt for the required metadata and write canonical,
   already-formatted files.
 - **Fix Formatting** — the one-click equivalent of the corpus's
-  `deno task fix`, applying the Markit formatter to every file.
+  `deno task fmt`, applying the Markit formatter to every file.
 - **Insert Borrowed Section Reference** — pick an edition from the catalogue
   and insert a `## <Author.Work.Edition>` placeholder at the cursor.
 
@@ -47,8 +47,9 @@ checkouts required.
 
 ```sh
 npm install
-npm run compile   # bundle to dist/ (npm run watch for development)
+npm run build     # bundle to dist/
 npm run check     # typecheck
+npm run fmt:check # format check (npm run fmt to apply)
 npm test          # unit tests (scaffold templates against the real rule set)
 npm run package   # build the .vsix
 ```
@@ -104,7 +105,7 @@ in the Extension Development Host.
 
 - `src/extension.ts` — activation (corpus-root detection), wiring, commands
 - `src/corpusModel.ts` — in-memory corpus: load/validate/catalogue + watcher
-  + catalogue/ cache (seed + write-back)
+  - catalogue/ cache (seed + write-back)
 - `src/corpusTree.ts` — Corpus Browser tree data provider
 - `src/diagnostics.ts` — Problems-panel diagnostics + status bar
 - `src/templates.ts` — pure scaffold file builders (formatted, schema-correct)
