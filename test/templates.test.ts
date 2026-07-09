@@ -13,7 +13,11 @@ import {
   validateCorpus,
   type Violation,
 } from "@jsr/earlytexts__corpus";
-import { CORPUS_ROOT, corpus, memoryCorpus } from "@jsr/earlytexts__corpus/harness";
+import {
+  CORPUS_ROOT,
+  corpus,
+  memoryCorpus,
+} from "@jsr/earlytexts__corpus/harness";
 import { authorFile, editionFile, stubFile } from "../src/templates.ts";
 
 const author = authorFile({

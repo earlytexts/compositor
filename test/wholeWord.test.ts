@@ -39,22 +39,14 @@ describe("replaceWholeWord", () => {
   });
 
   it("matches at string boundaries and around punctuation", () => {
-    const { text, count } = replaceWholeWord(
-      "cat, (cat) cat",
-      "cat",
-      "dog",
-    );
+    const { text, count } = replaceWholeWord("cat, (cat) cat", "cat", "dog");
     expect(text).toBe("dog, (dog) dog");
     expect(count).toBe(3);
   });
 
   it("treats accented letters as part of the word", () => {
     // The bare "cafe" must not match inside "café".
-    const { text, count } = replaceWholeWord(
-      "café and cafe",
-      "cafe",
-      "shop",
-    );
+    const { text, count } = replaceWholeWord("café and cafe", "cafe", "shop");
     expect(text).toBe("café and shop");
     expect(count).toBe(1);
   });

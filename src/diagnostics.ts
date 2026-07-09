@@ -14,14 +14,15 @@ const COMPILE_RULE = "every file compiles without errors";
 
 const toDiagnostic = (v: Violation): vscode.Diagnostic => {
   const line = (v.line ?? 1) - 1;
-  const range = v.column !== undefined
-    ? new vscode.Range(
-      line,
-      v.column - 1,
-      (v.endLine ?? v.line ?? 1) - 1,
-      (v.endColumn ?? v.column + 1) - 1,
-    )
-    : new vscode.Range(line, 0, line, 1000);
+  const range =
+    v.column !== undefined
+      ? new vscode.Range(
+          line,
+          v.column - 1,
+          (v.endLine ?? v.line ?? 1) - 1,
+          (v.endColumn ?? v.column + 1) - 1,
+        )
+      : new vscode.Range(line, 0, line, 1000);
   const message = v.locus === undefined ? v.message : `${v.locus} ${v.message}`;
   const diagnostic = new vscode.Diagnostic(
     range,
@@ -87,10 +88,11 @@ export const registerDiagnostics = (
     }
     const total = state.violations.length;
     status.text = total === 0 ? "$(check) Corpus" : `$(error) Corpus: ${total}`;
-    status.tooltip = total === 0
-      ? "Compositor: the corpus is valid"
-      : `Compositor: ${total} corpus violation(s)` +
-        (shown < total ? " (some shown by the Markit extension)" : "");
+    status.tooltip =
+      total === 0
+        ? "Compositor: the corpus is valid"
+        : `Compositor: ${total} corpus violation(s)` +
+          (shown < total ? " (some shown by the Markit extension)" : "");
   };
 
   context.subscriptions.push(

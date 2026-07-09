@@ -1,5 +1,5 @@
 /**
- * One-click equivalent of the corpus's `deno task fix`: apply the Markit
+ * One-click equivalent of the corpus's `deno task fmt`: apply the Markit
  * formatter to every .mit file under data/, in place. Reports how many files
  * changed; the watcher then revalidates.
  */
@@ -11,7 +11,10 @@ import { nodeCorpusFs } from "@jsr/earlytexts__corpus";
 
 export const fixFormatting = (model: CorpusModel): Thenable<void> =>
   vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Notification, title: "Formatting corpus" },
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: "Formatting corpus",
+    },
     async () => {
       let changed = 0;
       let total = 0;

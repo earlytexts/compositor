@@ -26,7 +26,8 @@ const findEdition = (
   for (const author of catalogue.authors) {
     for (const work of author.works) {
       for (const edition of work.editions) {
-        if (editionPath(catalogue, edition) === target) return { work, edition };
+        if (editionPath(catalogue, edition) === target)
+          return { work, edition };
       }
     }
   }
@@ -79,9 +80,8 @@ export const replaceInScope = async (model: CorpusModel): Promise<void> => {
   const range = editor.selection.isEmpty
     ? editor.document.getWordRangeAtPosition(editor.selection.active)
     : editor.selection;
-  const search = range === undefined
-    ? ""
-    : editor.document.getText(range).trim();
+  const search =
+    range === undefined ? "" : editor.document.getText(range).trim();
   if (search === "") {
     void vscode.window.showWarningMessage(
       "Compositor: select a word (or place the cursor in one) to replace.",
@@ -116,25 +116,27 @@ export const replaceInScope = async (model: CorpusModel): Promise<void> => {
   if (authorFiles.length > workFiles.length) {
     scopes.push({
       label: "This author",
-      description:
-        `${authorNames(catalogue, edition.authorSlugs)} · ${
-          plural(authorWorks.length, "work")
-        }, ${plural(authorFiles.length, "edition")}`,
+      description: `${authorNames(catalogue, edition.authorSlugs)} · ${plural(
+        authorWorks.length,
+        "work",
+      )}, ${plural(authorFiles.length, "edition")}`,
       files: authorFiles,
     });
   }
-  const scope = scopes.length === 1
-    ? scopes[0]
-    : await vscode.window.showQuickPick(scopes, {
-      title: `Replace “${search}” with “${replacement}” in…`,
-      ignoreFocusOut: true,
-    });
+  const scope =
+    scopes.length === 1
+      ? scopes[0]
+      : await vscode.window.showQuickPick(scopes, {
+          title: `Replace “${search}” with “${replacement}” in…`,
+          ignoreFocusOut: true,
+        });
   if (scope === undefined) return;
 
   const confirmed = await vscode.window.showWarningMessage(
-    `Replace every whole-word “${search}” with “${replacement}” across ${
-      plural(scope.files.length, "file")
-    }? This can be undone per file (⌘Z in each editor).`,
+    `Replace every whole-word “${search}” with “${replacement}” across ${plural(
+      scope.files.length,
+      "file",
+    )}? This can be undone per file (⌘Z in each editor).`,
     { modal: true },
     "Replace",
   );
@@ -179,12 +181,13 @@ export const replaceInScope = async (model: CorpusModel): Promise<void> => {
       }
       void vscode.window.showInformationMessage(
         occurrences === 0
-          ? `Compositor: no whole-word “${search}” found in ${
-            plural(scope.files.length, "file")
-          }.`
+          ? `Compositor: no whole-word “${search}” found in ${plural(
+              scope.files.length,
+              "file",
+            )}.`
           : `Compositor: replaced ${plural(occurrences, "occurrence")} of “${
-            search
-          }” with “${replacement}” across ${plural(touched.length, "file")}.`,
+              search
+            }” with “${replacement}” across ${plural(touched.length, "file")}.`,
       );
     },
   );

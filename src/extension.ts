@@ -23,7 +23,10 @@ import {
 } from "./commands/scaffolds.ts";
 import { fixFormatting } from "./commands/fixFormatting.ts";
 import { insertBorrowedRef } from "./commands/insertBorrowedRef.ts";
-import { compareEditions, compareWithNext } from "./commands/compareEditions.ts";
+import {
+  compareEditions,
+  compareWithNext,
+} from "./commands/compareEditions.ts";
 import { replaceInScope } from "./commands/replaceInScope.ts";
 import {
   createSuggestionController,
@@ -38,9 +41,10 @@ const findCorpusRoot = async (): Promise<string | undefined> => {
     .get<string>("corpusRoot", "")
     .replace(/\/$/, "");
   for (const folder of vscode.workspace.workspaceFolders ?? []) {
-    const root = configured === ""
-      ? folder.uri.fsPath
-      : `${folder.uri.fsPath}/${configured}`;
+    const root =
+      configured === ""
+        ? folder.uri.fsPath
+        : `${folder.uri.fsPath}/${configured}`;
     const authors = await nodeCorpusFs.stat(`${root}/data/authors`);
     // Canonicalised, so the model's precompiled-document keys line up with the
     // paths buildCatalogue resolves internally.
@@ -71,18 +75,22 @@ export const activate = async (
     tree.refresh();
     // With no model, leave message and badge unset so the view's welcome
     // content (package.json viewsWelcome) shows instead.
-    view.message = model === undefined
-      ? undefined
-      : model.loading
-      ? "Loading the corpus…"
-      : model.state === undefined
-      ? "The corpus failed to load."
-      : undefined;
+    view.message =
+      model === undefined
+        ? undefined
+        : model.loading
+          ? "Loading the corpus…"
+          : model.state === undefined
+            ? "The corpus failed to load."
+            : undefined;
     const problems = model?.state?.violations.length ?? 0;
-    view.badge = problems === 0 ? undefined : {
-      value: problems,
-      tooltip: `${problems} corpus violation(s)`,
-    };
+    view.badge =
+      problems === 0
+        ? undefined
+        : {
+            value: problems,
+            tooltip: `${problems} corpus violation(s)`,
+          };
   };
   context.subscriptions.push(view);
 
@@ -123,51 +131,33 @@ export const activate = async (
     // destination, shows progress, and offers to open the result — which
     // activates this extension (workspaceContains:data/authors). No build step
     // is needed: the model compiles in memory, and its first load writes catalogue/.
-    command(
-      "compositor.cloneCorpus",
-      () =>
-        vscode.commands.executeCommand(
-          "git.clone",
-          "https://github.com/earlytexts/corpus",
-        ),
+    command("compositor.cloneCorpus", () =>
+      vscode.commands.executeCommand(
+        "git.clone",
+        "https://github.com/earlytexts/corpus",
+      ),
     ),
     command("compositor.refresh", () => withModel((m) => m.reload())),
     command("compositor.validate", () => withModel((m) => m.reload())),
     command("compositor.fixFormatting", () => withModel(fixFormatting)),
     command("compositor.newAuthor", () => withModel(newAuthor)),
-    command(
-      "compositor.newWork",
-      (node) => withModel((m) => newWork(m, node)),
+    command("compositor.newWork", (node) => withModel((m) => newWork(m, node))),
+    command("compositor.newEdition", (node) =>
+      withModel((m) => newEdition(m, node)),
     ),
-    command(
-      "compositor.newEdition",
-      (node) => withModel((m) => newEdition(m, node)),
-    ),
-    command(
-      "compositor.insertBorrowedRef",
-      () => withModel(insertBorrowedRef),
-    ),
-    command(
-      "compositor.replaceInScope",
-      () => withModel(replaceInScope),
-    ),
+    command("compositor.insertBorrowedRef", () => withModel(insertBorrowedRef)),
+    command("compositor.replaceInScope", () => withModel(replaceInScope)),
     // These attach the model on first use (via withModel) so the controller's
     // getModel closure always sees it, then delegate to the controller.
-    command(
-      "compositor.suggestMarkup",
-      () => withModel(() => suggestions.configure()),
+    command("compositor.suggestMarkup", () =>
+      withModel(() => suggestions.configure()),
     ),
-    command(
-      "compositor.clearSuggestions",
-      () => suggestions.clear(),
+    command("compositor.clearSuggestions", () => suggestions.clear()),
+    command("compositor.compareEditions", (node) =>
+      withModel((m) => compareEditions(m, node)),
     ),
-    command(
-      "compositor.compareEditions",
-      (node) => withModel((m) => compareEditions(m, node)),
-    ),
-    command(
-      "compositor.compareWithNext",
-      (node) => withModel((m) => compareWithNext(m, node)),
+    command("compositor.compareWithNext", (node) =>
+      withModel((m) => compareWithNext(m, node)),
     ),
     command("compositor.openWorkStub", (node) => {
       // A borrowed node has no visible work parent, so this jumps to the
@@ -178,11 +168,12 @@ export const activate = async (
       );
     }),
     command("compositor.copyDocId", (node) => {
-      const id = node?.kind === "edition" || node?.kind === "borrowed"
-        ? node.edition.document.id
-        : node?.kind === "work"
-        ? workDocId(node.work)
-        : undefined;
+      const id =
+        node?.kind === "edition" || node?.kind === "borrowed"
+          ? node.edition.document.id
+          : node?.kind === "work"
+            ? workDocId(node.work)
+            : undefined;
       if (id !== undefined) return vscode.env.clipboard.writeText(id);
     }),
     // A corpus folder added to the workspace later still gets picked up.

@@ -33,8 +33,10 @@ const authorLetter = (author: Author): string =>
  * forename so the browser reads like an index.
  */
 const letterGroups = (authors: readonly Author[]): TreeNode[] => {
-  const sorted = [...authors].sort((a, b) =>
-    a.surname.localeCompare(b.surname) || a.forename.localeCompare(b.forename)
+  const sorted = [...authors].sort(
+    (a, b) =>
+      a.surname.localeCompare(b.surname) ||
+      a.forename.localeCompare(b.forename),
   );
   const groups = new Map<string, Author[]>();
   for (const author of sorted) {
@@ -149,8 +151,9 @@ export const createCorpusTree = (
         }));
       }
       if (node.kind === "edition" || node.kind === "borrowed") {
-        return borrowedChildren(node.edition, lookupFor(catalogue))
-          .map(({ edition, work }) => ({ kind: "borrowed", edition, work }));
+        return borrowedChildren(node.edition, lookupFor(catalogue)).map(
+          ({ edition, work }) => ({ kind: "borrowed", edition, work }),
+        );
       }
       return [];
     },
@@ -180,7 +183,9 @@ export const createCorpusTree = (
           `${author.forename} ${author.surname}`.trim(),
           lifespan(author),
           author.nationality,
-        ].filter((part) => part !== undefined && part !== "").join(" · ");
+        ]
+          .filter((part) => part !== undefined && part !== "")
+          .join(" · ");
         item.command = openCommand(authorPath(model.root, author));
         return item;
       }
@@ -199,7 +204,8 @@ export const createCorpusTree = (
       const catalogue = model.state!.catalogue;
       if (node.kind === "borrowed") {
         const { edition, work } = node;
-        const nested = borrowedChildren(edition, lookupFor(catalogue)).length > 0;
+        const nested =
+          borrowedChildren(edition, lookupFor(catalogue)).length > 0;
         // The title, not the year: unlike a normal edition node, a borrowed one
         // has no work-title parent above it, so it must name the text itself.
         const item = new vscode.TreeItem(
@@ -223,7 +229,8 @@ export const createCorpusTree = (
       const { edition, work } = node;
       const canonical = edition.slug === work.canonicalSlug;
       // A collection edition borrows other editions; expand to show them.
-      const borrows = borrowedChildren(edition, lookupFor(catalogue)).length > 0;
+      const borrows =
+        borrowedChildren(edition, lookupFor(catalogue)).length > 0;
       const item = new vscode.TreeItem(
         edition.slug,
         borrows
@@ -233,8 +240,7 @@ export const createCorpusTree = (
       item.iconPath = new vscode.ThemeIcon(canonical ? "star-full" : "file");
       // A distinct value when a later edition follows (editions are ascending
       // by year), so "Compare with Next" can hide on the latest/only edition.
-      const hasNext =
-        work.editions.indexOf(edition) < work.editions.length - 1;
+      const hasNext = work.editions.indexOf(edition) < work.editions.length - 1;
       item.contextValue = hasNext ? "editionHasNext" : "edition";
       item.tooltip = canonical
         ? `${edition.title} (canonical edition)`

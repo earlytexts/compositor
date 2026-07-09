@@ -7,7 +7,8 @@
 
 import { describe, expect, it } from "vitest";
 import { compile } from "@jsr/earlytexts__markit";
-import { buildHints, type Catalogue, scanSource } from "@jsr/earlytexts__corpus";
+import type { Catalogue } from "@jsr/earlytexts__corpus";
+import { buildHints, scanSource } from "../src/hints.ts";
 import { suggestionKey, wrapText } from "../src/suggestions.ts";
 import { hintOverrides } from "../src/hintOverrides.ts";
 
@@ -52,19 +53,21 @@ const catalogueOf = (body: string): Catalogue => {
 
 /** Apply the enabled-category fixes to a fresh source, right-to-left so the
  * earlier ranges keep their offsets. */
-const markUp = (source: string, enabled: Set<string>, hints: Catalogue): string => {
+const markUp = (
+  source: string,
+  enabled: Set<string>,
+  hints: Catalogue,
+): string => {
   const [doc] = compile(source);
   const suggestions = scanSource(source, doc, buildHints(hints, hintOverrides))
     .filter((s) => enabled.has(suggestionKey(s)))
-    .sort((a, b) =>
-      b.startLine - a.startLine || b.startColumn - a.startColumn
-    );
+    .sort((a, b) => b.startLine - a.startLine || b.startColumn - a.startColumn);
   const lines = source.split("\n");
   for (const s of suggestions) {
     // Single-line suggestions only in this fixture.
     const line = lines[s.startLine];
-    lines[s.startLine] = line.slice(0, s.startColumn) + wrapText(s) +
-      line.slice(s.endColumn);
+    lines[s.startLine] =
+      line.slice(0, s.startColumn) + wrapText(s) + line.slice(s.endColumn);
   }
   return lines.join("\n");
 };

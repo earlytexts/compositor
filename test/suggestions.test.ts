@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { MarkupSuggestion } from "@jsr/earlytexts__corpus";
+import type { MarkupSuggestion } from "../src/hints.ts";
 import {
   categoriesFor,
   categoryKey,
@@ -61,14 +61,18 @@ describe("categoriesFor", () => {
 
 describe("category / suggestion keys", () => {
   it("agree so an enabled category selects its suggestions", () => {
-    expect(categoryKey({ kind: "person" })).toBe(suggestionKey(at("person", "X")));
-    expect(categoryKey({ kind: "language", code: "la" }))
-      .toBe(suggestionKey(at("language", "quod", "la")));
+    expect(categoryKey({ kind: "person" })).toBe(
+      suggestionKey(at("person", "X")),
+    );
+    expect(categoryKey({ kind: "language", code: "la" })).toBe(
+      suggestionKey(at("language", "quod", "la")),
+    );
   });
 
   it("separate one language from another", () => {
-    expect(suggestionKey(at("language", "quod", "la")))
-      .not.toBe(suggestionKey(at("language", "chose", "fr")));
+    expect(suggestionKey(at("language", "quod", "la"))).not.toBe(
+      suggestionKey(at("language", "chose", "fr")),
+    );
   });
 });
 
@@ -84,8 +88,9 @@ describe("wrapText", () => {
     expect(wrapText(at("language", "λόγος", "grc"))).toBe("$grc:λόγος$");
   });
   it("keeps any inline markup inside the match intact", () => {
-    expect(wrapText(at("language", "fo//12//ro humano", "la")))
-      .toBe("$la:fo//12//ro humano$");
+    expect(wrapText(at("language", "fo//12//ro humano", "la"))).toBe(
+      "$la:fo//12//ro humano$",
+    );
   });
 });
 
@@ -98,7 +103,8 @@ describe("labels", () => {
     expect(suggestionMessage(at("person", "Hobbes"))).toMatch(/name/);
     expect(suggestionMessage(at("language", "quod", "la"))).toMatch(/Latin/);
     expect(fixTitle(at("citation", "X"))).toBe("Mark up as a citation ([…])");
-    expect(fixTitle(at("language", "quod", "la")))
-      .toBe("Mark up as Latin ($la:…$)");
+    expect(fixTitle(at("language", "quod", "la"))).toBe(
+      "Mark up as Latin ($la:…$)",
+    );
   });
 });

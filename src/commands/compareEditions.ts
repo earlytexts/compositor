@@ -35,9 +35,7 @@ const openDiff = async (
 
 /** Each of the corpus's works once, in author order, that has enough editions
  * to compare. Works co-authored by several people list under each author. */
-const comparableWorks = (
-  authors: readonly { works: Work[] }[],
-): Work[] => {
+const comparableWorks = (authors: readonly { works: Work[] }[]): Work[] => {
   const seen = new Set<Work>();
   const works: Work[] = [];
   for (const author of authors) {
@@ -75,10 +73,12 @@ export const compareEditions = async (
 
   // Fix the work from the invoking node, or ask which one. A borrowed node
   // carries its edition's own work, so it fixes the comparison like an edition.
-  let work = node?.kind === "work" ||
-      node?.kind === "edition" || node?.kind === "borrowed"
-    ? node.work
-    : undefined;
+  let work =
+    node?.kind === "work" ||
+    node?.kind === "edition" ||
+    node?.kind === "borrowed"
+      ? node.work
+      : undefined;
   if (work === undefined) {
     const works = comparableWorks(catalogue.authors);
     if (works.length === 0) {
@@ -108,9 +108,10 @@ export const compareEditions = async (
   }
 
   // An edition (or borrowed) node fixes the left side; otherwise pick both.
-  const left = node?.kind === "edition" || node?.kind === "borrowed"
-    ? node.edition
-    : await pickEdition(work.editions, "Left-hand (base) edition");
+  const left =
+    node?.kind === "edition" || node?.kind === "borrowed"
+      ? node.edition
+      : await pickEdition(work.editions, "Left-hand (base) edition");
   if (left === undefined) return;
   const right = await pickEdition(
     work.editions.filter((edition) => edition !== left),
@@ -134,7 +135,8 @@ export const compareWithNext = async (
   if (
     catalogue === undefined ||
     (node?.kind !== "edition" && node?.kind !== "borrowed")
-  ) return;
+  )
+    return;
   const { work, edition } = node;
   const next = work.editions[work.editions.indexOf(edition) + 1];
   if (next === undefined) {
