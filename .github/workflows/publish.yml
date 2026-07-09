@@ -51,7 +51,7 @@ jobs:
 
       - name: "Build extension bundle"
         if: "steps.check.outputs.publish == 'true'"
-        run: "npm run compile"
+        run: "npm run build"
 
       - name: "Publish to VS Code Marketplace"
         if: "steps.check.outputs.publish == 'true'"

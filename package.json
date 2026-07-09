@@ -13,10 +13,12 @@
   "icon": "./media/etc-logo.png",
   "main": "./dist/extension.cjs",
   "scripts": {
-    "compile": "node esbuild.mjs",
-    "watch": "node esbuild.mjs --watch",
+    "build": "node esbuild.mjs",
     "check": "tsc --noEmit",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "fmt": "prettier --write .",
+    "fmt:check": "prettier --check .",
     "package": "vsce package --no-dependencies --out build/compositor.vsix"
   },
   "dependencies": {
@@ -26,8 +28,10 @@
   "devDependencies": {
     "@types/node": "^25.5.2",
     "@types/vscode": "^1.85.0",
+    "@vitest/coverage-v8": "^3.0.0",
     "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.28.0",
+    "prettier": "^3.4.2",
     "typescript": "^6.0.2",
     "vitest": "^3.0.0"
   },
