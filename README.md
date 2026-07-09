@@ -31,6 +31,16 @@ validate` runs) published to the Problems panel, with a status-bar summary
   `deno task fmt`, applying the Markit formatter to every file.
 - **Insert Borrowed Section Reference** — pick an edition from the catalogue
   and insert a `## <Author.Work.Edition>` placeholder at the cursor.
+- **Dictionary diagnostics** — an opt-in overlay
+  (`compositor.flagUnaccountedWords`) that squiggles every word the corpus
+  dictionary does not yet account for (unknown surfaces as warnings,
+  unconfirmed `?` entries as hints), each with quick-fixes that curate the
+  entry — add it as a modern word, a respelling, or with a lemma; confirm an
+  unconfirmed one — writing the shard file canonically.
+- **Dictionary Curation** — an activity-bar view listing the unaccounted and
+  unconfirmed surfaces corpus-wide, most frequent first, so the register can be
+  backfilled highest-impact first; selecting one opens it in context, the
+  right-click menu curates it.
 
 All corpus logic (catalogue building, validation rules, path conventions) is
 bundled from the corpus repository itself via the `@earlytexts/corpus`
@@ -107,12 +117,18 @@ in the Extension Development Host.
 - `src/corpusModel.ts` — in-memory corpus: load/validate/catalogue + watcher
   - catalogue/ cache (seed + write-back)
 - `src/corpusTree.ts` — Corpus Browser tree data provider
+- `src/curationView.ts` — Dictionary Curation tree data provider
 - `src/diagnostics.ts` — Problems-panel diagnostics + status bar
 - `src/templates.ts` — pure scaffold file builders (formatted, schema-correct)
 - `src/suggestions.ts` — pure markup-suggestion helpers (categories, wrap text)
+- `src/dictionaryScan.ts` — pure: locate unaccounted/unconfirmed surfaces in
+  a document's source (runs the corpus's accounting rule)
+- `src/dictionaryEdits.ts` — pure: place a curation decision into a shard's
+  canonical text
+- `src/curation.ts` — pure: the corpus-wide, frequency-ranked curation worklist
 - `src/hintOverrides.ts` — manual patches to the mined language lexicons
 - `src/commands/` — scaffolds, fix formatting, insert borrowed reference,
-  suggest markup
+  suggest markup, dictionary diagnostics
 
 ### Markup suggestions
 
@@ -133,6 +149,42 @@ runs the whole mine→scan→filter→wrap path — which only holds together be
 markit resolves to one instance across the corpus/markit boundary (its block
 `Symbol()`s compare equal only within one instance), guaranteed here by the
 single hoisted `@jsr/earlytexts__markit` copy that npm installs.
+
+### Dictionary curation
+
+The corpus's dictionary (its curated register of surface forms) drives two
+editor surfaces, both off the corpus's own **accounting rule** (`accountTokens`
+in `@jsr/earlytexts__corpus` — the one coverage engine shared by corpus
+validation and this extension, so the two cannot disagree):
+
+- **Diagnostics** (`compositor.flagUnaccountedWords`, off by default —
+  toggle with `compositor.toggleUnaccountedWords`). While on, the active
+  editions are scanned and every unaccounted surface squiggled. The corpus owns
+  the _decision_ (which folded surfaces are unaccounted or unconfirmed);
+  `src/dictionaryScan.ts` only _locates_ them, reusing the markup-suggestion
+  tokenizer (`documentSourceTokens`) so exempting markup (names, citations,
+  foreign spans, `[w:]`) is skipped and page breaks/escapes are read through.
+  A word built from `{…}` character escapes or a kept ligature (`œconomy`) may
+  go unflagged rather than mis-flagged; the coverage counts stay exact.
+- **Quick-fixes and the Curation view** write dictionary entries. The pure
+  placement (`src/dictionaryEdits.ts`) parses the surface's shard, adds or
+  confirms the entry, and re-serialises with the corpus's own `shardDictionary`
+  — so an entry added from the editor is byte-identical to one `deno task fmt`
+  would produce and round-trips through corpus validation. Whether the result
+  is _coherent_ (references resolve, readings select) is the corpus validation's
+  business, reported live in the Problems panel after the write. The Curation
+  view (`src/curation.ts` + `src/curationView.ts`) ranks the whole backlog by
+  corpus-wide frequency so it can be burned down highest-impact first.
+
+The two overlays compose: enable the markup suggestions too, and a squiggled
+name offers both "mark up as a person" (from the suggestion provider) and the
+dictionary fixes at the same spot — the register and the mined lexicons
+reinforce each other, as intended, with no coupling between the features.
+
+The dictionary quick-fixes deliberately do not re-offer name/citation/language
+markup (that lives in the markup-suggestion overlay), nor `[w:]`/edition-default
+disambiguation of an already-accounted ambiguous surface (which has no
+diagnostic to hang a fix on); both are natural follow-ups.
 
 ### Corpus layout (what the tree and scaffolds produce)
 
