@@ -32,6 +32,11 @@ import {
   createSuggestionController,
   type SuggestionController,
 } from "./commands/suggestMarkup.ts";
+import {
+  createDictionaryController,
+  type DictionaryController,
+} from "./commands/dictionaryDiagnostics.ts";
+import { createCurationView, type CurationView } from "./curationView.ts";
 
 /** The first workspace folder that looks like the corpus (has data/authors),
  * honouring the compositor.corpusRoot setting. */
@@ -65,6 +70,14 @@ export const activate = async (
     context,
   );
   context.subscriptions.push({ dispose: () => suggestions.dispose() });
+
+  const dictionary: DictionaryController = createDictionaryController(
+    () => model,
+    context,
+  );
+  context.subscriptions.push({ dispose: () => dictionary.dispose() });
+
+  const curation: CurationView = createCurationView(() => model, context);
 
   const tree = createCorpusTree(() => model);
   const view = vscode.window.createTreeView("compositor.corpusBrowser", {
@@ -104,6 +117,8 @@ export const activate = async (
       { dispose: () => model?.dispose() },
       model.onDidChange(updateView),
       model.onDidChange(() => suggestions.onCorpusChanged()),
+      model.onDidChange(() => dictionary.onCorpusChanged()),
+      model.onDidChange(() => curation.onCorpusChanged()),
     );
     registerDiagnostics(model, context);
     updateView();

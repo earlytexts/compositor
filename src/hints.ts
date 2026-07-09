@@ -386,6 +386,33 @@ export const scanSource = (
   return prune(out.map((s) => expandOverMarkup(lines, s))).sort(byPosition);
 };
 
+/**
+ * Every content word of a document's blocks as a source token — the folded
+ * form, the source text, and a 0-based range — with markup dropped (names,
+ * citations, foreign spans, block tags) and page breaks / editorial marks read
+ * through. This is exactly the tokenization `scanSource` runs, exposed for the
+ * dictionary accounting scan (dictionaryScan.ts), which re-folds each token's
+ * `display` text with the corpus's own folding to match the register. As in
+ * `scanSource`, `document` must be the compile of THIS source.
+ */
+export const documentSourceTokens = (
+  source: string,
+  document: MarkitDocument,
+): SourceToken[] => {
+  const lines = source.split("\n");
+  const out: SourceToken[] = [];
+  for (const block of collectBlocks(document)) {
+    const from = block[startLine];
+    const to = Math.min(block[endLine], lines.length - 1);
+    const blockLines: { num: number; text: string }[] = [];
+    for (let num = from; num <= to; num++) {
+      blockLines.push({ num, text: lines[num] ?? "" });
+    }
+    out.push(...tokenizeBlock(blockLines).tokens);
+  }
+  return out;
+};
+
 /** Every block of the document and its (in-file) children, in source order. */
 const collectBlocks = (document: MarkitDocument): Block[] => {
   const out: Block[] = [];
@@ -635,7 +662,7 @@ const prune = (list: MarkupSuggestion[]): MarkupSuggestion[] =>
 
 /* --------------------------- source tokenizer -------------------------- */
 
-type SourceToken = {
+export type SourceToken = {
   folded: string;
   display: string;
   /** The source occurrence began with a capital letter. */

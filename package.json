@@ -2,7 +2,7 @@
   "name": "compositor",
   "publisher": "earlytexts",
   "displayName": "Early Text Compositor",
-  "version": "0.3.1",
+  "version": "0.4.1",
   "description": "A VSCode extension for contributing to the Early Text Corpus",
   "license": "MIT",
   "repository": {
@@ -22,7 +22,7 @@
     "package": "vsce package --no-dependencies --out build/compositor.vsix"
   },
   "dependencies": {
-    "@jsr/earlytexts__corpus": "^0.7.0",
+    "@jsr/earlytexts__corpus": "^0.8.0",
     "@jsr/earlytexts__markit": "^3.6.1"
   },
   "devDependencies": {
@@ -63,6 +63,11 @@
           "id": "compositor.corpusBrowser",
           "name": "Corpus",
           "contextualTitle": "Early Text Corpus"
+        },
+        {
+          "id": "compositor.curation",
+          "name": "Dictionary Curation",
+          "contextualTitle": "Dictionary Curation"
         }
       ]
     },
@@ -140,6 +145,31 @@
         "icon": "$(diff)"
       },
       {
+        "command": "compositor.toggleUnaccountedWords",
+        "title": "Toggle Unaccounted-Word Diagnostics",
+        "category": "Compositor"
+      },
+      {
+        "command": "compositor.curateModern",
+        "title": "Add to Dictionary (Modern Word)",
+        "category": "Compositor"
+      },
+      {
+        "command": "compositor.curateRespell",
+        "title": "Add to Dictionary as a Respelling…",
+        "category": "Compositor"
+      },
+      {
+        "command": "compositor.curateLemma",
+        "title": "Add to Dictionary with a Lemma…",
+        "category": "Compositor"
+      },
+      {
+        "command": "compositor.curateConfirm",
+        "title": "Confirm Dictionary Entry",
+        "category": "Compositor"
+      },
+      {
         "command": "compositor.compareWithNext",
         "title": "Compare with Next Edition",
         "category": "Compositor",
@@ -204,6 +234,26 @@
           "command": "compositor.copyDocId",
           "when": "view == compositor.corpusBrowser && viewItem =~ /work|edition|borrowed/",
           "group": "compositor@5"
+        },
+        {
+          "command": "compositor.curateModern",
+          "when": "view == compositor.curation && viewItem == curationUnaccounted",
+          "group": "compositor@1"
+        },
+        {
+          "command": "compositor.curateRespell",
+          "when": "view == compositor.curation && viewItem == curationUnaccounted",
+          "group": "compositor@2"
+        },
+        {
+          "command": "compositor.curateLemma",
+          "when": "view == compositor.curation && viewItem == curationUnaccounted",
+          "group": "compositor@3"
+        },
+        {
+          "command": "compositor.curateConfirm",
+          "when": "view == compositor.curation && viewItem == curationUnconfirmed",
+          "group": "compositor@1"
         }
       ],
       "editor/context": [
@@ -243,6 +293,22 @@
         {
           "command": "compositor.compareWithNext",
           "when": "false"
+        },
+        {
+          "command": "compositor.curateModern",
+          "when": "false"
+        },
+        {
+          "command": "compositor.curateRespell",
+          "when": "false"
+        },
+        {
+          "command": "compositor.curateLemma",
+          "when": "false"
+        },
+        {
+          "command": "compositor.curateConfirm",
+          "when": "false"
         }
       ]
     },
@@ -253,6 +319,11 @@
           "type": "string",
           "default": "",
           "description": "Workspace-relative path to the corpus root (the directory containing data/). Leave empty when VSCode is opened in the corpus itself."
+        },
+        "compositor.flagUnaccountedWords": {
+          "type": "boolean",
+          "default": false,
+          "description": "Squiggle words the dictionary does not yet account for (unknown surfaces as warnings, unconfirmed entries as hints) in open editions. Off by default: until the register is backfilled, most words are unaccounted, so this is a curation aid rather than an everyday diagnostic."
         }
       }
     }

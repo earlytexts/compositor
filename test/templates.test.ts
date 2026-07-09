@@ -87,6 +87,7 @@ describe("scaffold templates", () => {
   });
 
   it("the rule set is intact", () => {
-    expect(rules.length).toBe(11);
+    // 11 structural rules + the 4 dictionary rules (corpus 0.8.0).
+    expect(rules.length).toBe(15);
   });
 });
