@@ -7,7 +7,7 @@
 
 import * as vscode from "vscode";
 import type { Edition, Work } from "@jsr/earlytexts__corpus";
-import type { CorpusModel } from "../corpusModel.ts";
+import type { CorpusModel } from "../../corpusModel.ts";
 
 export const insertBorrowedRef = async (model: CorpusModel): Promise<void> => {
   const editor = vscode.window.activeTextEditor;

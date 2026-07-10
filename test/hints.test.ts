@@ -21,7 +21,7 @@ import {
   type MarkupSuggestion,
   phraseLexicon,
   scanSource,
-} from "../src/hints.ts";
+} from "../src/lib/hints.ts";
 
 /** @std/assert-style shims over vitest's expect, so the cases read unchanged. */
 const assert: (cond: unknown, msg?: string) => asserts cond = (cond, msg) => {

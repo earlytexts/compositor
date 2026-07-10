@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { replaceWholeWord } from "../src/wholeWord.ts";
+import { replaceWholeWord } from "../src/lib/wholeWord.ts";
 
 describe("replaceWholeWord", () => {
   it("replaces standalone occurrences", () => {

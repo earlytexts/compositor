@@ -14,8 +14,8 @@
  */
 
 import * as vscode from "vscode";
-import { type CurationEntry, curationList } from "./curation.ts";
-import type { CorpusModel } from "./corpusModel.ts";
+import { type CurationEntry, curationList } from "../lib/curation.ts";
+import type { CorpusModel } from "../corpusModel.ts";
 
 /** How many surfaces to show — the most frequent, the ones worth curating first. */
 const MAX_SHOWN = 2000;

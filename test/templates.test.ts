@@ -18,7 +18,7 @@ import {
   corpus,
   memoryCorpus,
 } from "@jsr/earlytexts__corpus/harness";
-import { authorFile, editionFile, stubFile } from "../src/templates.ts";
+import { authorFile, editionFile, stubFile } from "../src/lib/templates.ts";
 
 const author = authorFile({
   slug: "hume",

@@ -19,7 +19,7 @@ import {
   scanUnaccounted,
   statusSets,
   type UnaccountedWord,
-} from "../src/dictionaryScan.ts";
+} from "../src/lib/dictionaryScan.ts";
 
 /** Build an expanded dictionary from on-disk micro-syntax, the real pipeline. */
 const dict = (entries: Record<string, unknown>): Dictionary =>

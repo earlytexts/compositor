@@ -10,7 +10,7 @@ import {
   actionsFor,
   confirmEntryText,
   upsertEntryText,
-} from "../src/dictionaryEdits.ts";
+} from "../src/lib/dictionaryEdits.ts";
 
 test("adds a modern word to an existing shard, keeping keys sorted", () => {
   const before = '{\n  "apple": null\n}\n';

@@ -30,9 +30,9 @@ import {
   type Hints,
   type MarkupSuggestion,
   scanSource,
-} from "../hints.ts";
-import type { CorpusModel } from "../corpusModel.ts";
-import { hintOverrides } from "../hintOverrides.ts";
+} from "../../lib/hints.ts";
+import type { CorpusModel } from "../../corpusModel.ts";
+import { hintOverrides } from "../../lib/hintOverrides.ts";
 import {
   categoriesFor,
   type Category,
@@ -42,7 +42,7 @@ import {
   suggestionKey,
   suggestionMessage,
   wrapText,
-} from "../suggestions.ts";
+} from "../../lib/suggestions.ts";
 
 const SOURCE = "compositor-suggestions";
 const RESCAN_DEBOUNCE_MS = 300;
