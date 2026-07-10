@@ -12,31 +12,35 @@
 
 import * as vscode from "vscode";
 import { type CorpusModel, createCorpusModel } from "./corpusModel.ts";
-import { createCorpusTree, type TreeNode } from "./corpusTree.ts";
-import { registerDiagnostics } from "./diagnostics.ts";
+import { createCorpusTree } from "./surface/corpusTree.ts";
+import type { TreeNode } from "./lib/nodes.ts";
+import { registerDiagnostics } from "./surface/diagnostics.ts";
 import { nodeCorpusFs } from "@jsr/earlytexts__corpus";
 import {
   newAuthor,
   newEdition,
   newWork,
   workDocId,
-} from "./commands/scaffolds.ts";
-import { fixFormatting } from "./commands/fixFormatting.ts";
-import { insertBorrowedRef } from "./commands/insertBorrowedRef.ts";
+} from "./surface/commands/scaffolds.ts";
+import { fixFormatting } from "./surface/commands/fixFormatting.ts";
+import { insertBorrowedRef } from "./surface/commands/insertBorrowedRef.ts";
 import {
   compareEditions,
   compareWithNext,
-} from "./commands/compareEditions.ts";
-import { replaceInScope } from "./commands/replaceInScope.ts";
+} from "./surface/commands/compareEditions.ts";
+import { replaceInScope } from "./surface/commands/replaceInScope.ts";
 import {
   createSuggestionController,
   type SuggestionController,
-} from "./commands/suggestMarkup.ts";
+} from "./surface/commands/suggestMarkup.ts";
 import {
   createDictionaryController,
   type DictionaryController,
-} from "./commands/dictionaryDiagnostics.ts";
-import { createCurationView, type CurationView } from "./curationView.ts";
+} from "./surface/commands/dictionaryDiagnostics.ts";
+import {
+  createCurationView,
+  type CurationView,
+} from "./surface/curationView.ts";
 
 /** The first workspace folder that looks like the corpus (has data/authors),
  * honouring the compositor.corpusRoot setting. */

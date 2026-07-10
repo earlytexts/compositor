@@ -2,7 +2,7 @@
   "name": "compositor",
   "publisher": "earlytexts",
   "displayName": "Early Text Compositor",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "A VSCode extension for contributing to the Early Text Corpus",
   "license": "MIT",
   "repository": {
@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@jsr/earlytexts__corpus": "^0.8.0",
-    "@jsr/earlytexts__markit": "^3.6.1"
+    "@jsr/earlytexts__markit": "^3.7.0"
   },
   "devDependencies": {
     "@types/node": "^25.5.2",

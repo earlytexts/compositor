@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { MarkupSuggestion } from "../src/hints.ts";
+import type { MarkupSuggestion } from "../src/lib/hints.ts";
 import {
   categoriesFor,
   categoryKey,
@@ -14,7 +14,7 @@ import {
   suggestionKey,
   suggestionMessage,
   wrapText,
-} from "../src/suggestions.ts";
+} from "../src/lib/suggestions.ts";
 
 const at = (
   type: MarkupSuggestion["type"],

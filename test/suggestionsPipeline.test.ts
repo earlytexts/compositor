@@ -8,9 +8,9 @@
 import { describe, expect, it } from "vitest";
 import { compile } from "@jsr/earlytexts__markit";
 import type { Catalogue } from "@jsr/earlytexts__corpus";
-import { buildHints, scanSource } from "../src/hints.ts";
-import { suggestionKey, wrapText } from "../src/suggestions.ts";
-import { hintOverrides } from "../src/hintOverrides.ts";
+import { buildHints, scanSource } from "../src/lib/hints.ts";
+import { suggestionKey, wrapText } from "../src/lib/suggestions.ts";
+import { hintOverrides } from "../src/lib/hintOverrides.ts";
 
 /** A one-author, one-edition catalogue over `body` (a `.mit` document body). */
 const catalogueOf = (body: string): Catalogue => {

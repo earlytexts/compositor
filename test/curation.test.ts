@@ -12,7 +12,7 @@ import {
   corpus,
   memoryCorpus,
 } from "@jsr/earlytexts__corpus/harness";
-import { curationList } from "../src/curation.ts";
+import { curationList } from "../src/lib/curation.ts";
 
 const fixture = () =>
   corpus()

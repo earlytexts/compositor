@@ -7,59 +7,20 @@
  * case-sensitive, so "Reason" and "reason" stay distinct.
  *
  * Only edition source files are touched (never author files or work stubs); the
- * watcher revalidates the affected files afterwards.
+ * watcher revalidates the affected files afterwards. Which files a scope covers
+ * is decided by lib/replaceScope.ts; this module gathers the word and applies
+ * the edits.
  */
 
 import * as vscode from "vscode";
-import type { Author, Catalogue, Edition, Work } from "@jsr/earlytexts__corpus";
-import { normalizePath } from "@jsr/earlytexts__corpus";
-import type { CorpusModel } from "../corpusModel.ts";
-import { editionPath } from "../corpusTree.ts";
-import { replaceWholeWord } from "../wholeWord.ts";
-
-/** The work (and edition) whose source file is `filePath`, if any. */
-const findEdition = (
-  catalogue: Catalogue,
-  filePath: string,
-): { work: Work; edition: Edition } | undefined => {
-  const target = normalizePath(filePath);
-  for (const author of catalogue.authors) {
-    for (const work of author.works) {
-      for (const edition of work.editions) {
-        if (editionPath(catalogue, edition) === target)
-          return { work, edition };
-      }
-    }
-  }
-  return undefined;
-};
-
-/** Every work by any of `slugs`, each once, in author order. */
-const worksByAuthors = (catalogue: Catalogue, slugs: string[]): Work[] => {
-  const seen = new Set<Work>();
-  const works: Work[] = [];
-  for (const slug of slugs) {
-    const author: Author | undefined = catalogue.byAuthor.get(slug);
-    for (const work of author?.works ?? []) {
-      if (seen.has(work)) continue;
-      seen.add(work);
-      works.push(work);
-    }
-  }
-  return works;
-};
-
-/** The edition source files of `works`, deduplicated, in a stable order. */
-const editionFiles = (catalogue: Catalogue, works: Work[]): string[] => {
-  const paths = new Set<string>();
-  for (const work of works) {
-    for (const edition of work.editions) {
-      const path = editionPath(catalogue, edition);
-      if (path !== undefined) paths.add(path);
-    }
-  }
-  return [...paths];
-};
+import type { CorpusModel } from "../../corpusModel.ts";
+import { replaceWholeWord } from "../../lib/wholeWord.ts";
+import {
+  findEdition,
+  plural,
+  type ReplaceScope,
+  replaceScopes,
+} from "../../lib/replaceScope.ts";
 
 export const replaceInScope = async (model: CorpusModel): Promise<void> => {
   const editor = vscode.window.activeTextEditor;
@@ -101,29 +62,8 @@ export const replaceInScope = async (model: CorpusModel): Promise<void> => {
   });
   if (replacement === undefined || replacement === search) return;
 
-  // Scope: this work, or every work by its author(s). The author option is
-  // only worth offering when it reaches beyond this single work.
-  const authorWorks = worksByAuthors(catalogue, edition.authorSlugs);
-  const workFiles = editionFiles(catalogue, [work]);
-  const authorFiles = editionFiles(catalogue, authorWorks);
-  const scopes: (vscode.QuickPickItem & { files: string[] })[] = [
-    {
-      label: "This work",
-      description: `${work.breadcrumb} · ${plural(workFiles.length, "edition")}`,
-      files: workFiles,
-    },
-  ];
-  if (authorFiles.length > workFiles.length) {
-    scopes.push({
-      label: "This author",
-      description: `${authorNames(catalogue, edition.authorSlugs)} · ${plural(
-        authorWorks.length,
-        "work",
-      )}, ${plural(authorFiles.length, "edition")}`,
-      files: authorFiles,
-    });
-  }
-  const scope =
+  const scopes = replaceScopes(catalogue, work, edition);
+  const scope: ReplaceScope | undefined =
     scopes.length === 1
       ? scopes[0]
       : await vscode.window.showQuickPick(scopes, {
@@ -192,17 +132,3 @@ export const replaceInScope = async (model: CorpusModel): Promise<void> => {
     },
   );
 };
-
-const plural = (n: number, noun: string): string =>
-  `${n} ${noun}${n === 1 ? "" : "s"}`;
-
-/** "David Hume", or "Astell & Norris" for a co-authored work. */
-const authorNames = (catalogue: Catalogue, slugs: string[]): string =>
-  slugs
-    .map((slug) => {
-      const author = catalogue.byAuthor.get(slug);
-      return author === undefined
-        ? slug
-        : `${author.forename} ${author.surname}`.trim();
-    })
-    .join(" & ");

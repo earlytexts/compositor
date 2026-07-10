@@ -14,14 +14,8 @@
 import * as vscode from "vscode";
 import type { Author, Catalogue, Edition, Work } from "@jsr/earlytexts__corpus";
 import type { MarkitDocument } from "@jsr/earlytexts__markit";
-import type { CorpusModel } from "./corpusModel.ts";
-
-export type TreeNode =
-  | { kind: "letter"; letter: string; authors: Author[] }
-  | { kind: "author"; author: Author }
-  | { kind: "work"; work: Work; author: Author }
-  | { kind: "edition"; edition: Edition; work: Work }
-  | { kind: "borrowed"; edition: Edition; work: Work };
+import type { CorpusModel } from "../corpusModel.ts";
+import { authorPath, editionPath, type TreeNode } from "../lib/nodes.ts";
 
 /** The initial letter an author is filed under (by surname, falling back to slug). */
 const authorLetter = (author: Author): string =>
@@ -49,16 +43,6 @@ const letterGroups = (authors: readonly Author[]): TreeNode[] => {
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([letter, authors]) => ({ kind: "letter", letter, authors }));
 };
-
-/** The absolute path of an author's .mit file. */
-export const authorPath = (root: string, author: Author): string =>
-  `${root}/data/authors/${author.slug}.mit`;
-
-/** The absolute path of an edition's source .mit file, from the catalogue. */
-export const editionPath = (
-  catalogue: Catalogue,
-  edition: Edition,
-): string | undefined => catalogue.sources.get(edition.document);
 
 /**
  * Every edition in the catalogue, keyed by its composed document. A borrowed

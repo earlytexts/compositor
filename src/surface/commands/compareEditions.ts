@@ -7,8 +7,9 @@
 
 import * as vscode from "vscode";
 import type { Catalogue, Edition, Work } from "@jsr/earlytexts__corpus";
-import type { CorpusModel } from "../corpusModel.ts";
-import { editionPath, type TreeNode } from "../corpusTree.ts";
+import type { CorpusModel } from "../../corpusModel.ts";
+import { editionPath, type TreeNode } from "../../lib/nodes.ts";
+import { comparableWorks, nextEdition } from "../../lib/compareScope.ts";
 
 /** Open the native diff view on two editions (left = base), or explain why not. */
 const openDiff = async (
@@ -31,21 +32,6 @@ const openDiff = async (
     vscode.Uri.file(rightPath),
     `${work.breadcrumb}: ${left.slug} ↔ ${right.slug}`,
   );
-};
-
-/** Each of the corpus's works once, in author order, that has enough editions
- * to compare. Works co-authored by several people list under each author. */
-const comparableWorks = (authors: readonly { works: Work[] }[]): Work[] => {
-  const seen = new Set<Work>();
-  const works: Work[] = [];
-  for (const author of authors) {
-    for (const work of author.works) {
-      if (seen.has(work) || work.editions.length < 2) continue;
-      seen.add(work);
-      works.push(work);
-    }
-  }
-  return works;
 };
 
 const pickEdition = async (
@@ -138,7 +124,7 @@ export const compareWithNext = async (
   )
     return;
   const { work, edition } = node;
-  const next = work.editions[work.editions.indexOf(edition) + 1];
+  const next = nextEdition(work, edition);
   if (next === undefined) {
     void vscode.window.showInformationMessage(
       `Compositor: “${edition.slug}” is the latest edition — nothing after ` +

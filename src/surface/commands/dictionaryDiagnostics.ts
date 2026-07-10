@@ -20,15 +20,23 @@
 
 import * as vscode from "vscode";
 import { compile } from "@jsr/earlytexts__markit";
-import { fold, isWord, shardOf } from "@jsr/earlytexts__corpus";
-import { scanUnaccounted, type UnaccountedWord } from "../dictionaryScan.ts";
+import { shardOf } from "@jsr/earlytexts__corpus";
+import {
+  scanUnaccounted,
+  type UnaccountedWord,
+} from "../../lib/dictionaryScan.ts";
 import {
   actionsFor,
   confirmEntryText,
   type EntryAction,
   upsertEntryText,
-} from "../dictionaryEdits.ts";
-import type { CorpusModel } from "../corpusModel.ts";
+} from "../../lib/dictionaryEdits.ts";
+import {
+  entryActionTitle,
+  entryWords,
+  unaccountedMessage,
+} from "../../lib/dictionaryEntryText.ts";
+import type { CorpusModel } from "../../corpusModel.ts";
 
 const SOURCE = "compositor-dictionary";
 const SETTING = "flagUnaccountedWords";
@@ -43,24 +51,6 @@ const enabled = (): boolean =>
 
 const wordRange = (word: UnaccountedWord): vscode.Range =>
   new vscode.Range(word.line, word.startColumn, word.line, word.endColumn);
-
-const message = (word: UnaccountedWord): string =>
-  word.status === "unaccounted"
-    ? `“${word.display}” is not in the dictionary.`
-    : `“${word.display}” has an unconfirmed dictionary entry.`;
-
-const actionTitle = (surface: string, kind: EntryAction["kind"]): string => {
-  switch (kind) {
-    case "modern":
-      return `Add “${surface}” to the dictionary (modern word)`;
-    case "respell":
-      return `Add “${surface}” as a respelling…`;
-    case "lemma":
-      return `Add “${surface}” with a lemma…`;
-    case "confirm":
-      return `Confirm the dictionary entry for “${surface}”`;
-  }
-};
 
 /** Ask for the modern spelling (respell) or lemma of a surface, folded to the
  * register's key form. One word, or space-separated words for an expansion
@@ -79,24 +69,13 @@ const promptWords = async (
         ? "e.g. virtue — or space-separate an expansion (it is)"
         : "e.g. increase",
     validateInput: (value) =>
-      wordsOf(value).length > 0
+      entryWords(value).length > 0
         ? undefined
         : "Enter one or more words (letters and apostrophes only).",
   });
   if (input === undefined) return undefined;
-  const words = wordsOf(input);
+  const words = entryWords(input);
   return words.length === 0 ? undefined : words.join(" ");
-};
-
-/** The folded words of an input string, or [] if any token is not a word. */
-const wordsOf = (input: string): string[] => {
-  const tokens = input
-    .trim()
-    .split(/\s+/)
-    .filter((t) => t !== "");
-  return tokens.every((t) => isWord(fold(t))) && tokens.length > 0
-    ? tokens.map(fold)
-    : [];
 };
 
 export type DictionaryController = {
@@ -132,7 +111,7 @@ export const createDictionaryController = (
       words.map((word) => {
         const diagnostic = new vscode.Diagnostic(
           wordRange(word),
-          message(word),
+          unaccountedMessage(word),
           word.status === "unaccounted"
             ? vscode.DiagnosticSeverity.Warning
             : vscode.DiagnosticSeverity.Hint,
@@ -239,7 +218,7 @@ export const createDictionaryController = (
           if (word === undefined) continue;
           for (const { kind } of actionsFor(word.status)) {
             const fix = new vscode.CodeAction(
-              actionTitle(word.surface, kind),
+              entryActionTitle(word.surface, kind),
               vscode.CodeActionKind.QuickFix,
             );
             fix.diagnostics = [diagnostic];
