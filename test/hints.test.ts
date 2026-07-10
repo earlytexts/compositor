@@ -66,7 +66,8 @@ const fixture = () =>
         "{#2}",
         "He wrote $la:quod erat in foro$ and $la:in foro conscienti{ae}$ and " +
           "$fr:J'aime le monde$ and $sundry generique$ text. [p:Mr. Cicero] " +
-          "said so; compare [Pro Sexto] and [Point].",
+          "said so; compare [Pro Sexto] and [Point]. He toured [l:Rome] with " +
+          "the [o:Royal Society].",
       ].join("\n"),
     )
     .work("locke", "essay", {
@@ -136,6 +137,15 @@ test("hints: people come from person spans and author metadata", async () => {
   assert(hasPhrase(hints.people, "locke"));
 });
 
+test("hints: places and orgs are mined from their spans (no metadata seed)", async () => {
+  const hints = await fixtureHints();
+  assert(hasPhrase(hints.places, "rome")); // [l:Rome]
+  assert(hasPhrase(hints.orgs, "royal", "society")); // [o:Royal Society]
+  // Nothing seeds them, so a corpus with no such spans has empty lexicons.
+  assert(!hasPhrase(hints.people, "rome"));
+  assert(!hasPhrase(hints.citations, "royal", "society"));
+});
+
 test("hints: citations come from citation spans and work titles", async () => {
   const hints = await fixtureHints();
   assert(hasPhrase(hints.citations, "pro", "sexto")); // [Pro Sexto]
@@ -178,6 +188,8 @@ test("hints: foldWord folds case, marks, ligatures, and apostrophes", () => {
 /** Hints with empty phrase lexicons and no language lexicons. */
 const emptyHints = (partial?: Partial<Hints>): Hints => ({
   people: phraseLexicon([]),
+  places: phraseLexicon([]),
+  orgs: phraseLexicon([]),
   citations: phraseLexicon([]),
   languages: new Map(),
   ...partial,
@@ -312,6 +324,22 @@ test("scan: person phrases require a capital and take in their wrappers", () => 
   assertEquals(scanBody("Says Mr. *Hobbes* here.", hints).map(brief), [
     "person Mr. *Hobbes*",
   ]);
+});
+
+test("scan: place and org phrases match like people (and in titles)", () => {
+  const hints = emptyHints({
+    places: phraseLexicon(["Rome", "New England"]),
+    orgs: phraseLexicon(["Royal Society"]),
+  });
+  assertEquals(
+    scanBody("From Rome to New England the Royal Society wrote.", hints).map(
+      brief,
+    ),
+    ["place Rome", "place New England", "org Royal Society"],
+  );
+  // Places/orgs, like people, are still suggested inside title blocks.
+  const source = "# T\n\n{#title}\n^1 A LETTER FROM ROME\n\n{#1}\nEnglish.\n";
+  assertEquals(scan(source, hints).map(brief), ["place ROME"]);
 });
 
 test("scan: a match widens over the inline markup it sits in", () => {

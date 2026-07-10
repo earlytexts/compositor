@@ -15,7 +15,7 @@ import * as vscode from "vscode";
 import type { Author, Catalogue, Edition, Work } from "@jsr/earlytexts__corpus";
 import type { MarkitDocument } from "@jsr/earlytexts__markit";
 import type { CorpusModel } from "../corpusModel.ts";
-import { authorPath, editionPath, type TreeNode } from "../lib/nodes.ts";
+import { editionPath, type TreeNode } from "../lib/nodes.ts";
 
 /** The initial letter an author is filed under (by surname, falling back to slug). */
 const authorLetter = (author: Author): string =>
@@ -170,7 +170,10 @@ export const createCorpusTree = (
         ]
           .filter((part) => part !== undefined && part !== "")
           .join(" · ");
-        item.command = openCommand(authorPath(model.root, author));
+        // No command: a single click toggles the branch (like a letter or a
+        // work). Double-clicking opens the author's metadata — synthesised from
+        // the expand/collapse pair in extension.ts, since tree views have no
+        // double-click event.
         return item;
       }
       if (node.kind === "work") {

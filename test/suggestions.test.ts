@@ -1,14 +1,12 @@
 /**
- * The vscode-free suggestion rules: how scanner suggestions map to toggle
- * categories and to the markup a quick fix writes.
+ * The vscode-free suggestion rules: how a scanner suggestion maps to the markup
+ * a quick fix writes, the wording it carries, and the grouping key the "mark up
+ * all N" fix uses.
  */
 
 import { describe, expect, it } from "vitest";
 import type { MarkupSuggestion } from "../src/lib/hints.ts";
 import {
-  categoriesFor,
-  categoryKey,
-  categoryLabel,
   fixTitle,
   languageLabel,
   suggestionKey,
@@ -30,46 +28,11 @@ const at = (
   endColumn: text.length,
 });
 
-describe("categoriesFor", () => {
-  it("lists People and Citations first, then known languages in order", () => {
-    const categories = categoriesFor(["grc", "de", "la", "fr"]);
-    expect(categories.map(categoryLabel)).toEqual([
-      "People",
-      "Citations",
-      "Latin",
-      "French",
-      "Ancient Greek",
-      "German",
-    ]);
-  });
-
-  it("sorts unknown language codes after the known ones, by label", () => {
-    const categories = categoriesFor(["es", "it", "la"]);
-    expect(categories.map(categoryLabel)).toEqual([
-      "People",
-      "Citations",
-      "Latin",
-      "Italian",
-      "Spanish",
-    ]);
-  });
-
-  it("dedupes repeated codes", () => {
-    expect(categoriesFor(["la", "la"])).toHaveLength(3);
-  });
-});
-
-describe("category / suggestion keys", () => {
-  it("agree so an enabled category selects its suggestions", () => {
-    expect(categoryKey({ kind: "person" })).toBe(
-      suggestionKey(at("person", "X")),
-    );
-    expect(categoryKey({ kind: "language", code: "la" })).toBe(
-      suggestionKey(at("language", "quod", "la")),
-    );
-  });
-
-  it("separate one language from another", () => {
+describe("suggestionKey", () => {
+  it("groups by type, keeping one language apart from another", () => {
+    expect(suggestionKey(at("person", "X"))).toBe("person");
+    expect(suggestionKey(at("place", "X"))).toBe("place");
+    expect(suggestionKey(at("org", "X"))).toBe("org");
     expect(suggestionKey(at("language", "quod", "la"))).not.toBe(
       suggestionKey(at("language", "chose", "fr")),
     );
@@ -79,6 +42,12 @@ describe("category / suggestion keys", () => {
 describe("wrapText", () => {
   it("wraps a person in [p:…]", () => {
     expect(wrapText(at("person", "Hobbes"))).toBe("[p:Hobbes]");
+  });
+  it("wraps a place in [l:…]", () => {
+    expect(wrapText(at("place", "Rome"))).toBe("[l:Rome]");
+  });
+  it("wraps an organisation in [o:…]", () => {
+    expect(wrapText(at("org", "Royal Society"))).toBe("[o:Royal Society]");
   });
   it("wraps a citation in […]", () => {
     expect(wrapText(at("citation", "Sect. IV."))).toBe("[Sect. IV.]");
@@ -99,9 +68,18 @@ describe("labels", () => {
     expect(languageLabel("grc")).toBe("Ancient Greek");
     expect(languageLabel("cy")).toBe("CY");
   });
-  it("phrases messages and fix titles per type", () => {
+  it("phrases messages per type", () => {
     expect(suggestionMessage(at("person", "Hobbes"))).toMatch(/name/);
+    expect(suggestionMessage(at("place", "Rome"))).toMatch(/place/);
+    expect(suggestionMessage(at("org", "Royal Society"))).toMatch(
+      /organisation/,
+    );
     expect(suggestionMessage(at("language", "quod", "la"))).toMatch(/Latin/);
+  });
+  it("phrases fix titles per type", () => {
+    expect(fixTitle(at("person", "X"))).toBe("Mark up as a person ([p:…])");
+    expect(fixTitle(at("place", "X"))).toBe("Mark up as a place ([l:…])");
+    expect(fixTitle(at("org", "X"))).toBe("Mark up as an organisation ([o:…])");
     expect(fixTitle(at("citation", "X"))).toBe("Mark up as a citation ([…])");
     expect(fixTitle(at("language", "quod", "la"))).toBe(
       "Mark up as Latin ($la:…$)",

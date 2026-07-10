@@ -8,8 +8,9 @@
  * back in the source); this module is its editor surface. It is off by default
  * and gated behind the `compositor.flagUnaccountedWords` setting, because until
  * the register is backfilled almost every word is unaccounted — the overlay is
- * a curation tool, not an everyday distraction. Turning the setting on (or the
- * toggle command) lights it up; turning it off takes it back down.
+ * a curation tool, not an everyday distraction. The setting is flipped from the
+ * one "Suggest Markup & Flag Unaccounted Words" command (alongside the markup
+ * overlay); turning it on lights this up, turning it off takes it back down.
  *
  * Lifecycle mirrors the markup-suggestion overlay (commands/suggestMarkup.ts):
  * the active edition is compiled and scanned on demand — when the setting
@@ -240,11 +241,6 @@ export const createDictionaryController = (
     collection,
     provider,
     vscode.commands.registerCommand(ENTRY_COMMAND, runEntry),
-    vscode.commands.registerCommand("compositor.toggleUnaccountedWords", () =>
-      vscode.workspace
-        .getConfiguration("compositor")
-        .update(SETTING, !enabled(), vscode.ConfigurationTarget.Workspace),
-    ),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration(`compositor.${SETTING}`)) refresh();
     }),

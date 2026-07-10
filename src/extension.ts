@@ -13,7 +13,7 @@
 import * as vscode from "vscode";
 import { type CorpusModel, createCorpusModel } from "./corpusModel.ts";
 import { createCorpusTree } from "./surface/corpusTree.ts";
-import type { TreeNode } from "./lib/nodes.ts";
+import { authorPath, type TreeNode } from "./lib/nodes.ts";
 import { registerDiagnostics } from "./surface/diagnostics.ts";
 import { nodeCorpusFs } from "@jsr/earlytexts__corpus";
 import {
@@ -37,6 +37,7 @@ import {
   createDictionaryController,
   type DictionaryController,
 } from "./surface/commands/dictionaryDiagnostics.ts";
+import { configureDiagnostics } from "./surface/commands/configureDiagnostics.ts";
 import {
   createCurationView,
   type CurationView,
@@ -111,6 +112,38 @@ export const activate = async (
   };
   context.subscriptions.push(view);
 
+  // Double-click on an author or work opens its metadata. Tree views have no
+  // double-click event, so we synthesise one: authors and works carry no
+  // command, so a single click toggles the branch (firing an expand or collapse
+  // event); a double-click toggles it twice, landing it back where it began and
+  // giving us two events on the same node in quick succession. Editions carry
+  // their own open command and are untouched by this.
+  const DOUBLE_CLICK_MS = 500;
+  let lastToggle: { node: TreeNode; at: number } | undefined;
+  const openMetadata = (node: TreeNode): void => {
+    const uri =
+      node.kind === "author"
+        ? vscode.Uri.file(authorPath(model!.root, node.author))
+        : node.kind === "work"
+          ? vscode.Uri.file(`${node.work.dir}/index.mit`)
+          : undefined;
+    if (uri !== undefined) void vscode.window.showTextDocument(uri);
+  };
+  const onToggle = (node: TreeNode): void => {
+    if (node.kind !== "author" && node.kind !== "work") return;
+    const now = Date.now();
+    if (lastToggle?.node === node && now - lastToggle.at < DOUBLE_CLICK_MS) {
+      lastToggle = undefined;
+      openMetadata(node);
+      return;
+    }
+    lastToggle = { node, at: now };
+  };
+  context.subscriptions.push(
+    view.onDidExpandElement((e) => onToggle(e.element)),
+    view.onDidCollapseElement((e) => onToggle(e.element)),
+  );
+
   /** Look for the corpus and attach the model to it; true if attached. */
   const attach = async (): Promise<boolean> => {
     if (model !== undefined) return true;
@@ -166,18 +199,26 @@ export const activate = async (
     ),
     command("compositor.insertBorrowedRef", () => withModel(insertBorrowedRef)),
     command("compositor.replaceInScope", () => withModel(replaceInScope)),
-    // These attach the model on first use (via withModel) so the controller's
-    // getModel closure always sees it, then delegate to the controller.
-    command("compositor.suggestMarkup", () =>
-      withModel(() => suggestions.configure()),
+    // Attaches the model on first use (via withModel) so the overlay
+    // controllers' getModel closures see it, then flips the two overlay
+    // settings — which the controllers react to on their own.
+    command("compositor.configureDiagnostics", () =>
+      withModel(() => configureDiagnostics()),
     ),
-    command("compositor.clearSuggestions", () => suggestions.clear()),
     command("compositor.compareEditions", (node) =>
       withModel((m) => compareEditions(m, node)),
     ),
     command("compositor.compareWithNext", (node) =>
       withModel((m) => compareWithNext(m, node)),
     ),
+    command("compositor.openAuthorStub", (node) => {
+      if (node?.kind !== "author") return;
+      return withModel((m) =>
+        vscode.window.showTextDocument(
+          vscode.Uri.file(authorPath(m.root, node.author)),
+        ),
+      );
+    }),
     command("compositor.openWorkStub", (node) => {
       // A borrowed node has no visible work parent, so this jumps to the
       // borrowed edition's own work metadata.
