@@ -22,7 +22,7 @@
     "package": "vsce package --no-dependencies --out build/compositor.vsix"
   },
   "dependencies": {
-    "@jsr/earlytexts__corpus": "^0.8.0",
+    "@jsr/earlytexts__corpus": "^0.8.1",
     "@jsr/earlytexts__markit": "^3.7.0"
   },
   "devDependencies": {
