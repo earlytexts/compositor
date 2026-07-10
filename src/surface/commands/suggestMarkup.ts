@@ -1,25 +1,30 @@
 /**
- * Markup suggestions: a toggleable overlay that flags likely people,
- * citations, and foreign text in the open edition, so a contributor can cycle
- * through them (F8, like any diagnostic) and mark each up with a quick fix —
- * or leave it. The finding is hints.ts's (`scanSource` over the whole-corpus
- * lexicons `buildHints` mines); this module is the editor surface for it.
+ * Markup suggestions: a toggleable overlay that flags likely people, places,
+ * organisations, citations, and foreign text in the open editions, so a
+ * contributor can cycle through them (F8, like any diagnostic) and mark each up
+ * with a quick fix — or leave it. The finding is hints.ts's (`scanSource` over
+ * the whole-corpus lexicons `buildHints` mines); this module is the editor
+ * surface for it.
  *
- * How it hangs together:
+ * It is the enrichment half of the inline overlay, sitting alongside the
+ * dictionary-accounting half (commands/dictionaryDiagnostics.ts): unaccounted
+ * words squiggle as warnings, markup candidates as hints. Both are off by
+ * default and driven by their own boolean setting, flipped together from the
+ * one "Suggest Markup & Flag Unaccounted Words" command — there is no per-kind
+ * filter, so turning the overlay on flags every kind at once.
+ *
+ * How it hangs together (mirrors the dictionary overlay):
  *  - Hints (the lexicons) are built once from the loaded catalogue and cached,
  *    rebuilt only when the corpus model reloads (a save) — so a newly marked-up
  *    name improves every later suggestion. Building is ~1–2s, so the first
  *    build shows progress.
- *  - Scanning is per-file and cheap (~tens of ms): the active editor's current
- *    text is compiled and scanned on demand — when categories are toggled, when
- *    the active editor changes, on edits (debounced), and after a rebuild.
- *  - Suggestions surface as Information diagnostics in their own collection
- *    (kept apart from validation, so toggling them never disturbs the Problems
- *    the corpus rules report), each offering a "mark up as …" quick fix plus a
+ *  - Scanning is per-file and cheap (~tens of ms): a shown edition's current
+ *    text is compiled and scanned on demand — when the setting flips, when the
+ *    active editor changes, on edits (debounced), and after a rebuild.
+ *  - Suggestions surface as Hint diagnostics in their own collection (kept
+ *    apart from validation, so toggling them never disturbs the Problems the
+ *    corpus rules report), each offering a "mark up as …" quick fix plus a
  *    "mark up all N identical" fix for repeated names and citations.
- *
- * Off until asked for: the command opens a category picker; clearing all
- * categories (or "Clear Suggestions") takes the overlay back down.
  */
 
 import * as vscode from "vscode";
@@ -34,10 +39,6 @@ import {
 import type { CorpusModel } from "../../corpusModel.ts";
 import { hintOverrides } from "../../lib/hintOverrides.ts";
 import {
-  categoriesFor,
-  type Category,
-  categoryKey,
-  categoryLabel,
   fixTitle,
   suggestionKey,
   suggestionMessage,
@@ -45,10 +46,14 @@ import {
 } from "../../lib/suggestions.ts";
 
 const SOURCE = "compositor-suggestions";
+const SETTING = "suggestMarkup";
 const RESCAN_DEBOUNCE_MS = 300;
 
 const isMit = (document: vscode.TextDocument): boolean =>
   document.uri.scheme === "file" && document.uri.fsPath.endsWith(".mit");
+
+const enabled = (): boolean =>
+  vscode.workspace.getConfiguration("compositor").get<boolean>(SETTING, false);
 
 const suggestionRange = (suggestion: MarkupSuggestion): vscode.Range =>
   new vscode.Range(
@@ -59,10 +64,6 @@ const suggestionRange = (suggestion: MarkupSuggestion): vscode.Range =>
   );
 
 export type SuggestionController = {
-  /** Open the category picker and (re)scan, or take the overlay down. */
-  configure: () => Promise<void>;
-  /** Clear every suggestion and disable the overlay. */
-  clear: () => void;
   /** The corpus reloaded: drop the cached hints and refresh what's shown. */
   onCorpusChanged: () => void;
   dispose: () => void;
@@ -73,8 +74,6 @@ export const createSuggestionController = (
   context: vscode.ExtensionContext,
 ): SuggestionController => {
   const collection = vscode.languages.createDiagnosticCollection(SOURCE);
-  /** Category keys currently shown; empty means the overlay is off. */
-  const enabled = new Set<string>();
   /** The last scan of each open document, for the code-action provider. */
   const scanned = new Map<string, MarkupSuggestion[]>();
   /** Cached lexicons, and the catalogue identity they were built from. */
@@ -101,9 +100,7 @@ export const createSuggestionController = (
   /** Scan one document with the current hints and publish its diagnostics. */
   const scan = (document: vscode.TextDocument, active: Hints): void => {
     const [doc] = compile(document.getText());
-    const suggestions = scanSource(document.getText(), doc, active).filter(
-      (s) => enabled.has(suggestionKey(s)),
-    );
+    const suggestions = scanSource(document.getText(), doc, active);
     scanned.set(document.uri.fsPath, suggestions);
     collection.set(
       document.uri,
@@ -111,7 +108,7 @@ export const createSuggestionController = (
         const diagnostic = new vscode.Diagnostic(
           suggestionRange(s),
           suggestionMessage(s),
-          vscode.DiagnosticSeverity.Information,
+          vscode.DiagnosticSeverity.Hint,
         );
         // A source distinct from the validation diagnostics (also "compositor")
         // so the code-action provider never mistakes one for the other.
@@ -122,15 +119,6 @@ export const createSuggestionController = (
     );
   };
 
-  /** Re-scan the active editor if the overlay is on and it's an edition. */
-  const rescanActive = async (): Promise<void> => {
-    if (enabled.size === 0) return;
-    const editor = vscode.window.activeTextEditor;
-    if (editor === undefined || !isMit(editor.document)) return;
-    const active = await ensureHints();
-    if (active !== undefined) scan(editor.document, active);
-  };
-
   /** Forget a document's suggestions and clear its squiggles. */
   const drop = (document: vscode.TextDocument): void => {
     if (!scanned.has(document.uri.fsPath)) return;
@@ -138,54 +126,24 @@ export const createSuggestionController = (
     collection.delete(document.uri);
   };
 
-  const clear = (): void => {
-    enabled.clear();
-    scanned.clear();
-    collection.clear();
-  };
-
-  const configure = async (): Promise<void> => {
+  /** Re-scan every open edition (or clear everything when off). */
+  const refresh = async (): Promise<void> => {
+    if (!enabled()) {
+      scanned.clear();
+      collection.clear();
+      return;
+    }
     const active = await ensureHints();
-    if (active === undefined) {
-      void vscode.window.showWarningMessage(
-        "Compositor: the corpus is still loading — try again in a moment.",
-      );
-      return;
-    }
-    const categories = categoriesFor(active.languages.keys());
-    const items: (vscode.QuickPickItem & { category: Category })[] =
-      categories.map((category) => ({
-        label: categoryLabel(category),
-        picked: enabled.has(categoryKey(category)),
-        category,
-      }));
-    const picked = await vscode.window.showQuickPick(items, {
-      title: "Suggest markup in this edition",
-      placeHolder: "Choose what to flag (Esc to keep the current selection)",
-      canPickMany: true,
-    });
-    if (picked === undefined) return; // cancelled: leave the overlay as it was
-
-    enabled.clear();
-    for (const item of picked) enabled.add(categoryKey(item.category));
-    if (enabled.size === 0) {
-      clear();
-      return;
-    }
-    // Categories changed: re-scan everything already on screen, plus the
-    // active editor, against the new selection.
+    if (active === undefined) return;
     for (const document of vscode.workspace.textDocuments) {
-      if (scanned.has(document.uri.fsPath)) scan(document, active);
+      if (isMit(document)) scan(document, active);
     }
-    await rescanActive();
   };
 
-  // Re-scan on edits to a shown (or active) edition, debounced per document.
+  // Re-scan on edits to an open edition, debounced per document.
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
   const onEdit = (document: vscode.TextDocument): void => {
-    if (enabled.size === 0 || !isMit(document)) return;
-    const isActive = vscode.window.activeTextEditor?.document === document;
-    if (!isActive && !scanned.has(document.uri.fsPath)) return;
+    if (!enabled() || !isMit(document)) return;
     const key = document.uri.fsPath;
     clearTimeout(timers.get(key));
     timers.set(
@@ -260,19 +218,27 @@ export const createSuggestionController = (
   context.subscriptions.push(
     collection,
     provider,
-    vscode.window.onDidChangeActiveTextEditor(() => void rescanActive()),
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration(`compositor.${SETTING}`)) void refresh();
+    }),
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      if (editor !== undefined && enabled() && isMit(editor.document)) {
+        void ensureHints().then((active) => {
+          if (active !== undefined) scan(editor.document, active);
+        });
+      }
+    }),
     vscode.workspace.onDidChangeTextDocument((e) => onEdit(e.document)),
     vscode.workspace.onDidCloseTextDocument(drop),
     { dispose: () => timers.forEach(clearTimeout) },
   );
+  void refresh();
 
   return {
-    configure,
-    clear,
     onCorpusChanged: () => {
       hints = undefined;
       hintsFrom = undefined;
-      void rescanActive();
+      void refresh();
     },
     dispose: () => collection.dispose(),
   };

@@ -1,11 +1,12 @@
 /**
- * The vscode-free core of the markup-suggestion feature: the category model a
- * contributor toggles, and the pure mapping from a scanner suggestion to the
- * markup that would wrap it. `scanSource` (hints.ts) finds the candidates
- * (people, citations, foreign text) in an edition's source; this decides how
- * they are grouped in the toggle picker and what each "mark this up" quick fix
- * writes. Kept apart from the vscode wiring (commands/suggestMarkup.ts) so the
- * rules are unit-testable without the editor API.
+ * The vscode-free core of the markup-suggestion feature: the pure mapping from
+ * a scanner suggestion to the markup that would wrap it. `scanSource` (hints.ts)
+ * finds the candidates (people, places, organisations, citations, foreign text)
+ * in an edition's source; this decides what each "mark this up" quick fix
+ * writes, and the wording it carries. Kept apart from the vscode wiring
+ * (commands/suggestMarkup.ts) so the rules are unit-testable without the editor
+ * API. The overlay is all-or-nothing (no per-category filter), so `suggestionKey`
+ * exists only to group repeated identical matches for the "mark up all N" fix.
  */
 
 import type { MarkupSuggestion } from "./hints.ts";
@@ -27,62 +28,34 @@ export const LANGUAGE_NAMES: Record<string, string> = {
 export const languageLabel = (code: string): string =>
   LANGUAGE_NAMES[code] ?? code.toUpperCase();
 
-/** A toggleable class of suggestion: the two name kinds, plus one per language
- * the corpus has marked up (so a new language appears automatically). */
-export type Category =
-  | { kind: "person" }
-  | { kind: "citation" }
-  | { kind: "language"; code: string };
-
-/** The stable identity of a category (and of the suggestions it selects),
- * used as a Set key and to match a suggestion to its enabled category. */
-export const categoryKey = (category: Category): string =>
-  category.kind === "language" ? `language:${category.code}` : category.kind;
-
+/** The stable identity of a suggestion's kind (type, and language code for a
+ * foreign span), used to group repeated identical matches for the "mark up all
+ * N" quick fix. */
 export const suggestionKey = (suggestion: MarkupSuggestion): string =>
   suggestion.type === "language"
     ? `language:${suggestion.lang ?? ""}`
     : suggestion.type;
 
-export const categoryLabel = (category: Category): string =>
-  category.kind === "person"
-    ? "People"
-    : category.kind === "citation"
-      ? "Citations"
-      : languageLabel(category.code);
-
-/**
- * The categories on offer for a corpus, in a stable order: People, Citations,
- * then one per language, with the well-known codes (Latin, French, Greek)
- * first and any others after, alphabetically by label.
- */
-export const categoriesFor = (languageCodes: Iterable<string>): Category[] => {
-  const order = ["la", "fr", "grc"];
-  const codes = [...new Set(languageCodes)].sort((a, b) => {
-    const ia = order.indexOf(a);
-    const ib = order.indexOf(b);
-    if (ia !== -1 || ib !== -1) {
-      return (ia === -1 ? Infinity : ia) - (ib === -1 ? Infinity : ib);
-    }
-    return languageLabel(a).localeCompare(languageLabel(b));
-  });
-  return [
-    { kind: "person" },
-    { kind: "citation" },
-    ...codes.map((code): Category => ({ kind: "language", code })),
-  ];
-};
-
 /** The delimiters that would wrap a suggestion's text as the markup it
- * proposes: `[p:…]` for people, `[…]` for citations, `$xx:…$` for a language.
- */
+ * proposes: `[p:…]` people, `[l:…]` places, `[o:…]` organisations, `[…]`
+ * citations, `$xx:…$` a language span. */
 export const wrapper = (
   suggestion: MarkupSuggestion,
 ): { open: string; close: string } => {
-  if (suggestion.type === "person") return { open: "[p:", close: "]" };
-  if (suggestion.type === "citation") return { open: "[", close: "]" };
-  const code = suggestion.lang;
-  return { open: code === undefined ? "$" : `$${code}:`, close: "$" };
+  switch (suggestion.type) {
+    case "person":
+      return { open: "[p:", close: "]" };
+    case "place":
+      return { open: "[l:", close: "]" };
+    case "org":
+      return { open: "[o:", close: "]" };
+    case "citation":
+      return { open: "[", close: "]" };
+    default: {
+      const code = suggestion.lang;
+      return { open: code === undefined ? "$" : `$${code}:`, close: "$" };
+    }
+  }
 };
 
 /** The replacement text a "mark this up" fix inserts over the match. */
@@ -93,23 +66,41 @@ export const wrapText = (suggestion: MarkupSuggestion): string => {
 
 /** The diagnostic message shown against a suggestion. */
 export const suggestionMessage = (suggestion: MarkupSuggestion): string => {
-  if (suggestion.type === "person")
-    return "Possible name — mark up as a person?";
-  if (suggestion.type === "citation") {
-    return "Possible citation — mark up as a reference?";
+  switch (suggestion.type) {
+    case "person":
+      return "Possible name — mark up as a person?";
+    case "place":
+      return "Possible place — mark up as a place?";
+    case "org":
+      return "Possible organisation — mark up as an organisation?";
+    case "citation":
+      return "Possible citation — mark up as a reference?";
+    default: {
+      const name = languageLabel(suggestion.lang ?? "");
+      return `Possible ${name} — mark up as ${name}?`;
+    }
   }
-  const name = languageLabel(suggestion.lang ?? "");
-  return `Possible ${name} — mark up as ${name}?`;
+};
+
+/** The noun phrase naming a suggestion's kind, as it reads in a quick-fix title
+ * ("a person", "an organisation", "Latin"). */
+const kindNoun = (suggestion: MarkupSuggestion): string => {
+  switch (suggestion.type) {
+    case "person":
+      return "a person";
+    case "place":
+      return "a place";
+    case "org":
+      return "an organisation";
+    case "citation":
+      return "a citation";
+    default:
+      return languageLabel(suggestion.lang ?? "");
+  }
 };
 
 /** The quick-fix title for wrapping one suggestion. */
 export const fixTitle = (suggestion: MarkupSuggestion): string => {
   const { open, close } = wrapper(suggestion);
-  return `Mark up as ${
-    suggestion.type === "person"
-      ? "a person"
-      : suggestion.type === "citation"
-        ? "a citation"
-        : languageLabel(suggestion.lang ?? "")
-  } (${open}…${close})`;
+  return `Mark up as ${kindNoun(suggestion)} (${open}…${close})`;
 };

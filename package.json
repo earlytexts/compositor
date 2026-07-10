@@ -2,7 +2,7 @@
   "name": "compositor",
   "publisher": "earlytexts",
   "displayName": "Early Text Compositor",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "A VSCode extension for contributing to the Early Text Corpus",
   "license": "MIT",
   "repository": {
@@ -22,7 +22,7 @@
     "package": "vsce package --no-dependencies --out build/compositor.vsix"
   },
   "dependencies": {
-    "@jsr/earlytexts__corpus": "^0.8.0",
+    "@jsr/earlytexts__corpus": "^0.8.1",
     "@jsr/earlytexts__markit": "^3.7.0"
   },
   "devDependencies": {
@@ -128,26 +128,16 @@
         "category": "Compositor"
       },
       {
-        "command": "compositor.suggestMarkup",
-        "title": "Suggest Markup…",
+        "command": "compositor.configureDiagnostics",
+        "title": "Suggest Markup & Flag Unaccounted Words…",
         "category": "Compositor",
         "icon": "$(lightbulb-sparkle)"
-      },
-      {
-        "command": "compositor.clearSuggestions",
-        "title": "Clear Markup Suggestions",
-        "category": "Compositor"
       },
       {
         "command": "compositor.compareEditions",
         "title": "Compare Editions…",
         "category": "Compositor",
         "icon": "$(diff)"
-      },
-      {
-        "command": "compositor.toggleUnaccountedWords",
-        "title": "Toggle Unaccounted-Word Diagnostics",
-        "category": "Compositor"
       },
       {
         "command": "compositor.curateModern",
@@ -174,6 +164,11 @@
         "title": "Compare with Next Edition",
         "category": "Compositor",
         "icon": "$(diff)"
+      },
+      {
+        "command": "compositor.openAuthorStub",
+        "title": "Open Author Metadata",
+        "category": "Compositor"
       },
       {
         "command": "compositor.openWorkStub",
@@ -209,6 +204,11 @@
           "command": "compositor.newWork",
           "when": "view == compositor.corpusBrowser && viewItem == author",
           "group": "compositor@1"
+        },
+        {
+          "command": "compositor.openAuthorStub",
+          "when": "view == compositor.corpusBrowser && viewItem == author",
+          "group": "compositor@2"
         },
         {
           "command": "compositor.newEdition",
@@ -268,12 +268,16 @@
           "group": "compositor"
         },
         {
-          "command": "compositor.suggestMarkup",
+          "command": "compositor.configureDiagnostics",
           "when": "resourceExtname == .mit",
           "group": "compositor"
         }
       ],
       "commandPalette": [
+        {
+          "command": "compositor.openAuthorStub",
+          "when": "false"
+        },
         {
           "command": "compositor.openWorkStub",
           "when": "false"
@@ -324,6 +328,11 @@
           "type": "boolean",
           "default": false,
           "description": "Squiggle words the dictionary does not yet account for (unknown surfaces as warnings, unconfirmed entries as hints) in open editions. Off by default: until the register is backfilled, most words are unaccounted, so this is a curation aid rather than an everyday diagnostic."
+        },
+        "compositor.suggestMarkup": {
+          "type": "boolean",
+          "default": false,
+          "description": "Squiggle likely people, places, organisations, citations, and foreign text (as hints) in open editions, each with a quick fix to wrap it in the corresponding markup. Off by default: it is an enrichment aid, mined from the markup the corpus already carries."
         }
       }
     }

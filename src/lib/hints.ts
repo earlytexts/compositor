@@ -110,6 +110,8 @@ export type PhraseLexicon = Map<string, string[][]>;
 /** Everything the scanner needs, mined from the compiled catalogue. */
 export type Hints = {
   people: PhraseLexicon;
+  places: PhraseLexicon;
+  orgs: PhraseLexicon;
   citations: PhraseLexicon;
   /** Keyed by lowercase ISO 639 code ("la", "fr", "grc", …). */
   languages: Map<string, LanguageLexicon>;
@@ -127,7 +129,7 @@ export type HintOverrides = Record<string, LanguageOverrides>;
 /** A proposed piece of markup, as a range in the scanned source. Lines and
  * columns are 0-based; the end is exclusive. */
 export type MarkupSuggestion = {
-  type: "person" | "citation" | "language";
+  type: "person" | "place" | "org" | "citation" | "language";
   /** The language code, for language suggestions. */
   lang?: string;
   /** The matched source text, verbatim (it may contain markup the match is
@@ -153,6 +155,8 @@ export const buildHints = (
   overrides: HintOverrides = {},
 ): Hints => {
   const people: PhraseLexicon = new Map();
+  const places: PhraseLexicon = new Map();
+  const orgs: PhraseLexicon = new Map();
   const citations: PhraseLexicon = new Map();
   const langCounts = new Map<string, Map<string, number>>();
   const unmarked = new Map<string, number>();
@@ -168,6 +172,8 @@ export const buildHints = (
       }
     },
     person: (text) => addPhrase(people, text),
+    place: (text) => addPhrase(places, text),
+    org: (text) => addPhrase(orgs, text),
     citation: (text) => addPhrase(citations, text),
     unmarked: (text) => {
       for (const match of text.matchAll(WORDS_RE)) {
@@ -217,6 +223,8 @@ export const buildHints = (
     }
   };
   pruneSingletons(people);
+  pruneSingletons(places);
+  pruneSingletons(orgs);
   pruneSingletons(citations);
 
   const languages = new Map<string, LanguageLexicon>();
@@ -254,7 +262,7 @@ export const buildHints = (
     }
   }
 
-  return { people, citations, languages };
+  return { people, places, orgs, citations, languages };
 };
 
 /* --------------------------- the corpus walk --------------------------- */
@@ -262,6 +270,8 @@ export const buildHints = (
 type HintSink = {
   language: (lang: string, text: string) => void;
   person: (text: string) => void;
+  place: (text: string) => void;
+  org: (text: string) => void;
   citation: (text: string) => void;
   unmarked: (text: string) => void;
 };
@@ -287,9 +297,10 @@ const allDocs = (catalogue: Catalogue): MarkitDocument[] => {
 
 /**
  * Route each stretch of inline content to its bucket. Text inside a semantic
- * wrapper feeds that wrapper's lexicon only — person/citation/place/org
- * content is proper names, not evidence of English — and a language span
- * without a code feeds nothing (its content is unreliable either way).
+ * wrapper feeds that wrapper's lexicon only — person/place/org/citation content
+ * is proper names, not evidence of English — and a language span without a code
+ * feeds nothing (its content is unreliable either way). Places and orgs have no
+ * metadata seed, so these spans are their only training signal.
  */
 const walkInline = (elements: InlineElement[], sink: HintSink): void => {
   for (const el of elements) {
@@ -297,10 +308,10 @@ const walkInline = (elements: InlineElement[], sink: HintSink): void => {
     else if (el.type === "language") {
       if (el.lang !== undefined) sink.language(el.lang, inlineText(el.content));
     } else if (el.type === "person") sink.person(inlineText(el.content));
+    else if (el.type === "place") sink.place(inlineText(el.content));
+    else if (el.type === "org") sink.org(inlineText(el.content));
     else if (el.type === "citation") sink.citation(inlineText(el.content));
-    else if (el.type === "place" || el.type === "org") {
-      /* proper names */
-    } else if ("content" in el && Array.isArray(el.content)) {
+    else if ("content" in el && Array.isArray(el.content)) {
       walkInline(el.content, sink);
     }
   }
@@ -374,6 +385,8 @@ export const scanSource = (
     matchGreek(tokens, lines, out);
     matchLanguages(tokens, hints.languages, lines, out);
     matchPhrases(tokens, hints.people, "person", lines, out);
+    matchPhrases(tokens, hints.places, "place", lines, out);
+    matchPhrases(tokens, hints.orgs, "org", lines, out);
     // A title page never cites anything — least of all its own work's title,
     // which the citation lexicon is seeded with.
     if (block.type !== "title" && block.type !== "subtitle") {
