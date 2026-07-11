@@ -1,12 +1,11 @@
 /**
- * The Dictionary Curation view: the corpus-wide backlog of unaccounted and
- * unconfirmed surfaces (curation.ts), ranked most-frequent first, as a flat
- * list beside the Corpus Browser. Selecting a surface opens one place it is
- * attested (so the decision can be made in context); the right-click menu
- * curates it — confirm as modern, respell, set a lemma, or confirm an
- * unconfirmed entry — reusing the same shard writer the editor quick-fixes use
- * (`compositor.dictionaryEntry`). Writing a shard reloads the corpus, which
- * refreshes this list, so a curated surface drops off.
+ * The Dictionary Curation view: the corpus-wide backlog of unaccounted
+ * surfaces (curation.ts), ranked most-frequent first, as a flat list beside the
+ * Corpus Browser. Selecting a surface opens one place it is attested (so the
+ * decision can be made in context); the right-click menu curates it — add as
+ * modern, respell, or set a lemma — reusing the same shard writer the editor
+ * quick-fixes use (`compositor.dictionaryEntry`). Writing a shard reloads the
+ * corpus, which refreshes this list, so a curated surface drops off.
  *
  * The list is recomputed from the loaded catalogue (no computer dependency) and
  * capped, since until backfill the backlog is the whole vocabulary; the title
@@ -19,11 +18,6 @@ import type { CorpusModel } from "../corpusModel.ts";
 
 /** How many surfaces to show — the most frequent, the ones worth curating first. */
 const MAX_SHOWN = 2000;
-
-const contextValue = (entry: CurationEntry): string =>
-  entry.status === "unconfirmed"
-    ? "curationUnconfirmed"
-    : "curationUnaccounted";
 
 export type CurationView = {
   /** The corpus reloaded (or a shard was written): recompute the worklist. */
@@ -57,14 +51,9 @@ export const createCurationView = (
         vscode.TreeItemCollapsibleState.None,
       );
       item.description = `×${entry.count}`;
-      item.contextValue = contextValue(entry);
-      item.iconPath = new vscode.ThemeIcon(
-        entry.status === "unconfirmed" ? "question" : "warning",
-      );
-      item.tooltip =
-        entry.status === "unconfirmed"
-          ? `“${entry.surface}” — unconfirmed entry, ${entry.count} occurrence(s)`
-          : `“${entry.surface}” — not in the dictionary, ${entry.count} occurrence(s)`;
+      item.contextValue = "curationUnaccounted";
+      item.iconPath = new vscode.ThemeIcon("warning");
+      item.tooltip = `“${entry.surface}” — not in the dictionary, ${entry.count} occurrence(s)`;
       if (entry.example !== undefined) {
         const position = new vscode.Position(entry.example.line, 0);
         item.command = {
@@ -99,7 +88,7 @@ export const createCurationView = (
   // A curate action reads the surface off the right-clicked node and hands it to
   // the shared shard writer; kind decides which entry it writes.
   const curate =
-    (kind: "modern" | "respell" | "lemma" | "confirm") =>
+    (kind: "modern" | "respell" | "lemma") =>
     (entry?: CurationEntry): void => {
       if (entry === undefined) return;
       void vscode.commands.executeCommand(
@@ -121,10 +110,6 @@ export const createCurationView = (
       curate("respell"),
     ),
     vscode.commands.registerCommand("compositor.curateLemma", curate("lemma")),
-    vscode.commands.registerCommand(
-      "compositor.curateConfirm",
-      curate("confirm"),
-    ),
   );
 
   refresh();

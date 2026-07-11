@@ -8,7 +8,7 @@
 import { expect, test } from "vitest";
 import {
   actionsFor,
-  confirmEntryText,
+  upsertEntriesText,
   upsertEntryText,
 } from "../src/lib/dictionaryEdits.ts";
 
@@ -46,25 +46,30 @@ test("replaces an existing entry rather than duplicating it", () => {
 });
 
 test("rejects a malformed value", () => {
-  expect(() => upsertEntryText("", "x", "=not a lemma")).toThrow();
+  expect(() => upsertEntryText("", "x", "=a!b")).toThrow();
 });
 
-test("confirming drops the `?` and keeps the reading", () => {
-  const before = '{\n  "compleat": "?complete"\n}\n';
-  expect(confirmEntryText(before, "compleat")).toBe(
-    '{\n  "compleat": "complete"\n}\n',
-  );
+test("adds several entries to one shard at once, keeping keys sorted", () => {
+  // A cascade resolves a target alongside the surface that referenced it; both
+  // land in the same shard write.
+  expect(
+    upsertEntriesText("", [
+      { surface: "vertue", value: "virtue" },
+      { surface: "virtue", value: null },
+    ]),
+  ).toBe('{\n  "vertue": "virtue",\n  "virtue": null\n}\n');
 });
 
-test("confirming an absent entry throws", () => {
-  expect(() => confirmEntryText("{}", "ghost")).toThrow();
+test("upsertEntriesText rolls back nothing — a malformed value throws", () => {
+  expect(() =>
+    upsertEntriesText("", [{ surface: "x", value: "=a!b" }]),
+  ).toThrow();
 });
 
-test("offers add actions for an unknown surface, confirm for an unconfirmed one", () => {
-  expect(actionsFor("unaccounted").map((a) => a.kind)).toEqual([
+test("offers the add actions for an unknown surface", () => {
+  expect(actionsFor().map((a) => a.kind)).toEqual([
     "modern",
     "respell",
     "lemma",
   ]);
-  expect(actionsFor("unconfirmed").map((a) => a.kind)).toEqual(["confirm"]);
 });

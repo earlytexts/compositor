@@ -1,7 +1,6 @@
 /**
  * The "unaccounted word" overlay: while it is on, every surface the dictionary
- * does not yet account for is squiggled in the open editions — a warning for an
- * unknown surface (no entry), a hint for an unconfirmed (`?`) one — so a
+ * does not yet account for (no entry) is squiggled in the open editions, so a
  * contributor can walk them (F8) and curate each with a quick fix.
  *
  * The finding is dictionaryScan.ts's (the corpus's `accountTokens` rule located
@@ -21,22 +20,29 @@
 
 import * as vscode from "vscode";
 import { compile } from "@jsr/earlytexts__markit";
-import { shardOf } from "@jsr/earlytexts__corpus";
+import { type EntryValue, shardOf } from "@jsr/earlytexts__corpus";
 import {
   scanUnaccounted,
   type UnaccountedWord,
 } from "../../lib/dictionaryScan.ts";
 import {
   actionsFor,
-  confirmEntryText,
   type EntryAction,
-  upsertEntryText,
+  upsertEntriesText,
 } from "../../lib/dictionaryEdits.ts";
 import {
+  addTargetTitle,
   entryActionTitle,
   entryWords,
   unaccountedMessage,
+  unattestedLemmaMessage,
+  unattestedRejectMessage,
 } from "../../lib/dictionaryEntryText.ts";
+import {
+  corpusVocabulary,
+  resolveLemmaTarget,
+  resolveSpellingTarget,
+} from "../../lib/dictionaryResolve.ts";
 import type { CorpusModel } from "../../corpusModel.ts";
 
 const SOURCE = "compositor-dictionary";
@@ -79,6 +85,157 @@ const promptWords = async (
   return words.length === 0 ? undefined : words.join(" ");
 };
 
+/* -------------------------- the resolution cascade ---------------------- */
+
+/** The entries a cascade has decided to write, folded surface → value. */
+type Decisions = Map<string, EntryValue>;
+
+/** What a target is measured against: the entries decided so far (plus the
+ * loaded register), and the corpus vocabulary. */
+type ResolveCtx = {
+  decisions: Decisions;
+  inDictionary: (word: string) => boolean;
+  inCorpus: (word: string) => boolean;
+};
+
+/** How a step ended: written, abandoned (a cancelled prompt), or refused (an
+ * unattested respelling target — carrying the message to show). */
+type Step = "ok" | "cancel" | { rejected: string };
+
+/**
+ * Decide one entry, resolving whatever it references first (so the write never
+ * leaves the register invalid). `modern` bottoms out immediately; a respelling
+ * resolves each target spelling, a lemma its citation form — recursing until
+ * every target is registered, added here, refused, or the contributor cancels.
+ */
+const addEntry = async (
+  surface: string,
+  kind: EntryAction["kind"],
+  ctx: ResolveCtx,
+): Promise<Step> => {
+  if (kind === "modern") {
+    ctx.decisions.set(surface, null);
+    return "ok";
+  }
+  const target = await promptWords(surface, kind);
+  if (target === undefined) return "cancel";
+  if (kind === "lemma") {
+    const step = await resolveLemma(target, ctx);
+    if (step !== "ok") return step;
+    ctx.decisions.set(surface, `=${target}`);
+    return "ok";
+  }
+  for (const spelling of target.split(" ")) {
+    const step = await resolveSpelling(spelling, ctx);
+    if (step !== "ok") return step;
+  }
+  ctx.decisions.set(surface, target);
+  return "ok";
+};
+
+/** Resolve a respelling's target spelling: registered already, else added as a
+ * modern word or a lemma (an attested spelling), else refused (unattested). */
+const resolveSpelling = async (
+  target: string,
+  ctx: ResolveCtx,
+): Promise<Step> => {
+  const resolution = resolveSpellingTarget(
+    target,
+    ctx.inDictionary,
+    ctx.inCorpus,
+  );
+  if (resolution.kind === "resolved") return "ok";
+  if (resolution.kind === "reject") {
+    return { rejected: unattestedRejectMessage(target) };
+  }
+  const kind = await pickAddKind(target, resolution.choices);
+  if (kind === undefined) return "cancel";
+  return addEntry(target, kind, ctx);
+};
+
+/** Resolve a stated lemma's citation form: registered already, else added as a
+ * modern word — silently when attested, on confirmation when not (a citation
+ * form may be unprinted). */
+const resolveLemma = async (target: string, ctx: ResolveCtx): Promise<Step> => {
+  const resolution = resolveLemmaTarget(target, ctx.inDictionary, ctx.inCorpus);
+  if (resolution.kind === "resolved") return "ok";
+  if (resolution.kind === "add") {
+    ctx.decisions.set(target, resolution.value);
+    return "ok";
+  }
+  if (!(await confirmUnattestedLemma(target))) return "cancel";
+  ctx.decisions.set(target, null);
+  return "ok";
+};
+
+/** Ask how to give a target its own entry — the choices are the only ones that
+ * keep the register valid. undefined when dismissed. */
+const pickAddKind = async (
+  target: string,
+  choices: Array<"modern" | "lemma">,
+): Promise<"modern" | "lemma" | undefined> => {
+  const pick = await vscode.window.showQuickPick(
+    choices.map((action) =>
+      action === "modern"
+        ? {
+            label: "Modern word",
+            action,
+            description: `“${target}” is spelled and lemmatised as itself`,
+          }
+        : {
+            label: "With a lemma…",
+            action,
+            description: `“${target}” is a modern spelling of another headword`,
+          },
+    ),
+    { title: addTargetTitle(target) },
+  );
+  return pick?.action;
+};
+
+/** Confirm adding an unattested citation form (a lemma that never appears in
+ * the corpus). Modal, defaulting to no. */
+const confirmUnattestedLemma = async (target: string): Promise<boolean> =>
+  (await vscode.window.showWarningMessage(
+    unattestedLemmaMessage(target),
+    { modal: true },
+    "Add as modern word",
+  )) === "Add as modern word";
+
+/** Write a cascade's decisions, one write per shard. Every shard's new text is
+ * computed first, so a malformed value throws before anything is written. */
+const writeDecisions = async (
+  root: string,
+  decisions: Decisions,
+): Promise<void> => {
+  const byShard = new Map<string, { surface: string; value: EntryValue }[]>();
+  for (const [surface, value] of decisions) {
+    const shard = shardOf(surface);
+    const group = byShard.get(shard) ?? [];
+    group.push({ surface, value });
+    byShard.set(shard, group);
+  }
+  const writes: { uri: vscode.Uri; data: Uint8Array }[] = [];
+  for (const [shard, entries] of byShard) {
+    const uri = vscode.Uri.file(`${root}/data/dictionary/${shard}`);
+    let current = "";
+    try {
+      current = new TextDecoder().decode(
+        await vscode.workspace.fs.readFile(uri),
+      );
+    } catch {
+      // no shard yet — a fresh one is written below
+    }
+    writes.push({
+      uri,
+      data: new TextEncoder().encode(upsertEntriesText(current, entries)),
+    });
+  }
+  for (const { uri, data } of writes) {
+    await vscode.workspace.fs.writeFile(uri, data);
+  }
+};
+
 export type DictionaryController = {
   /** The scanned words of a document, for the code-action provider. */
   wordsOf: (document: vscode.TextDocument) => UnaccountedWord[];
@@ -113,9 +270,7 @@ export const createDictionaryController = (
         const diagnostic = new vscode.Diagnostic(
           wordRange(word),
           unaccountedMessage(word),
-          word.status === "unaccounted"
-            ? vscode.DiagnosticSeverity.Warning
-            : vscode.DiagnosticSeverity.Hint,
+          vscode.DiagnosticSeverity.Warning,
         );
         diagnostic.source = SOURCE;
         diagnostic.code = word.surface;
@@ -158,51 +313,41 @@ export const createDictionaryController = (
     );
   };
 
-  /** Write a curation decision to the surface's shard file (creating it if
-   * needed); the corpus watcher reloads and the squiggle clears on re-scan. A
-   * respelling/lemma prompts for the target; a malformed value is reported and
-   * nothing is written. */
+  /** Curate one surface, resolving every target it references all the way down
+   * before writing, so the register is never left invalid. A respelling/lemma
+   * prompts for its target and, if that target is itself unregistered, cascades
+   * (adding an attested one, refusing an unattested spelling, confirming an
+   * unattested citation form). The decisions land across their shards in one
+   * pass; the corpus watcher reloads and the squiggles clear on re-scan. */
   const runEntry = async (
     surface: string,
     kind: EntryAction["kind"],
   ): Promise<void> => {
     const model = getModel();
-    if (model === undefined) return;
-    const shardUri = vscode.Uri.file(
-      `${model.root}/data/dictionary/${shardOf(surface)}`,
-    );
-    let current = "";
-    try {
-      current = new TextDecoder().decode(
-        await vscode.workspace.fs.readFile(shardUri),
-      );
-    } catch {
-      // no shard yet — a fresh one is written below
+    if (model === undefined || model.state === undefined) return;
+    const { root, state } = model;
+    const dictionary = state.catalogue.dictionary;
+    if (dictionary === undefined) return;
+    const vocabulary = corpusVocabulary(state.catalogue);
+    const decisions: Decisions = new Map();
+    const step = await addEntry(surface, kind, {
+      decisions,
+      inDictionary: (word) =>
+        decisions.has(word) || Object.hasOwn(dictionary, word),
+      inCorpus: (word) => vocabulary.has(word),
+    });
+    if (step === "cancel") return;
+    if (typeof step === "object") {
+      void vscode.window.showErrorMessage(`Compositor: ${step.rejected}`);
+      return;
     }
-    let next: string;
     try {
-      if (kind === "confirm") next = confirmEntryText(current, surface);
-      else if (kind === "modern")
-        next = upsertEntryText(current, surface, null);
-      else {
-        const target = await promptWords(surface, kind);
-        if (target === undefined) return; // cancelled
-        next = upsertEntryText(
-          current,
-          surface,
-          kind === "respell" ? target : `=${target}`,
-        );
-      }
+      await writeDecisions(root, decisions);
     } catch (error) {
       void vscode.window.showErrorMessage(
         `Compositor: ${error instanceof Error ? error.message : String(error)}`,
       );
-      return;
     }
-    await vscode.workspace.fs.writeFile(
-      shardUri,
-      new TextEncoder().encode(next),
-    );
   };
 
   const provider = vscode.languages.registerCodeActionsProvider(
@@ -217,7 +362,7 @@ export const createDictionaryController = (
             wordRange(w).isEqual(diagnostic.range),
           );
           if (word === undefined) continue;
-          for (const { kind } of actionsFor(word.status)) {
+          for (const { kind } of actionsFor()) {
             const fix = new vscode.CodeAction(
               entryActionTitle(word.surface, kind),
               vscode.CodeActionKind.QuickFix,
