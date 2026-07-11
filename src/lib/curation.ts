@@ -1,10 +1,10 @@
 /**
- * The curation worklist: every surface the dictionary does not yet account for,
- * corpus-wide, ranked so a contributor can burn the backlog down highest-impact
- * first. The decision is the corpus's `accountTokens` rule (the same one the
- * editor squiggles use); this tallies its verdict over the whole catalogue and
- * attaches, for each surface, one place it is attested so the curator can see
- * it in context before deciding.
+ * The curation worklist: every surface the dictionary does not yet account for
+ * (no entry), corpus-wide, ranked so a contributor can burn the backlog down
+ * highest-impact first. The decision is the corpus's `accountTokens` rule (the
+ * same one the editor squiggles use); this tallies its verdict over the whole
+ * catalogue and attaches, for each surface, one place it is attested so the
+ * curator can see it in context before deciding.
  *
  * Counting walks each edition's document once. A borrowed edition is the very
  * same document object wherever it is spliced in (the catalogue build shares,
@@ -21,7 +21,6 @@ import { accountTokens, type Catalogue } from "@jsr/earlytexts__corpus";
 export type CurationEntry = {
   /** The folded surface — the dictionary key it is (or would be) filed under. */
   surface: string;
-  status: "unaccounted" | "unconfirmed";
   /** Occurrences corpus-wide. */
   count: number;
   /** One attested occurrence, to open in context: source path and 0-based line. */
@@ -39,11 +38,7 @@ export const curationList = (catalogue: Catalogue): CurationEntry[] => {
     }
   }
 
-  type Tally = {
-    status: CurationEntry["status"];
-    count: number;
-    example?: { path: string; line: number };
-  };
+  type Tally = { count: number; example?: { path: string; line: number } };
   const tallies = new Map<string, Tally>();
   for (const [document, path] of editions) {
     // Count this edition's own text: its blocks and its inline sections, but
@@ -53,13 +48,8 @@ export const curationList = (catalogue: Catalogue): CurationEntry[] => {
       children: document.children.filter((child) => !editions.has(child)),
     };
     for (const token of accountTokens(own, catalogue.dictionary)) {
-      if (token.status !== "unaccounted" && token.status !== "unconfirmed") {
-        continue;
-      }
-      const tally = tallies.get(token.folded) ?? {
-        status: token.status,
-        count: 0,
-      };
+      if (token.status !== "unaccounted") continue;
+      const tally = tallies.get(token.folded) ?? { count: 0 };
       tally.count++;
       if (tally.example === undefined && path !== undefined) {
         tally.example = { path, line: token.block[startLine] };
@@ -71,17 +61,12 @@ export const curationList = (catalogue: Catalogue): CurationEntry[] => {
   return [...tallies.entries()]
     .map(([surface, tally]) => ({
       surface,
-      status: tally.status,
       count: tally.count,
       ...(tally.example !== undefined ? { example: tally.example } : {}),
     }))
     .sort(
       (a, b) =>
-        // Unknown surfaces before unconfirmed ones, then most frequent first,
-        // then alphabetical — the order to curate in.
-        Number(a.status === "unconfirmed") -
-          Number(b.status === "unconfirmed") ||
-        b.count - a.count ||
-        a.surface.localeCompare(b.surface),
+        // Most frequent first, then alphabetical — the order to curate in.
+        b.count - a.count || a.surface.localeCompare(b.surface),
     );
 };

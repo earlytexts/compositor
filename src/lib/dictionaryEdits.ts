@@ -20,19 +20,17 @@ import {
   shardOf,
 } from "@jsr/earlytexts__corpus";
 
-/** The curation actions a squiggled surface offers, by its accounting status. */
+/** The curation actions a squiggled (unaccounted) surface offers. */
 export type EntryAction =
-  | { kind: "modern" } // no entry → add `null` (a confirmed modern word)
-  | { kind: "respell" } // no entry → add a cross-reference to modern spelling(s)
-  | { kind: "lemma" } // no entry → add `=lemma` (a modern word, lemma stated)
-  | { kind: "confirm" }; // `?` entry → drop the `?`, confirming it
+  | { kind: "modern" } // add `null` (a modern word, its own lemma)
+  | { kind: "respell" } // add a cross-reference to modern spelling(s)
+  | { kind: "lemma" }; // add `=lemma` (a modern word, lemma stated)
 
-export const actionsFor = (
-  status: "unaccounted" | "unconfirmed",
-): EntryAction[] =>
-  status === "unconfirmed"
-    ? [{ kind: "confirm" }]
-    : [{ kind: "modern" }, { kind: "respell" }, { kind: "lemma" }];
+export const actionsFor = (): EntryAction[] => [
+  { kind: "modern" },
+  { kind: "respell" },
+  { kind: "lemma" },
+];
 
 /**
  * The new canonical text of a surface's shard after adding (or replacing) its
@@ -46,31 +44,26 @@ export const upsertEntryText = (
   shardText: string,
   surface: string,
   value: EntryValue,
+): string => upsertEntriesText(shardText, [{ surface, value }]);
+
+/**
+ * The new canonical text of a shard after adding (or replacing) several entries
+ * at once — every `surface` must belong to this one shard (the caller groups a
+ * cascade's decisions by shard). Same contract as `upsertEntryText`: a
+ * malformed value throws, the result round-trips through corpus fmt.
+ */
+export const upsertEntriesText = (
+  shardText: string,
+  entries: { surface: string; value: EntryValue }[],
 ): string => {
-  const shard = shardOf(surface);
+  const shard = shardOf(entries[0].surface);
   const { dictionary } = parseDictionary(
     new Map([[shard, shardText.trim() === "" ? "{}" : shardText]]),
   );
-  const entry = parseEntry(surface, value);
-  if ("error" in entry) throw new Error(entry.error);
-  dictionary[surface] = entry;
-  return shardDictionary(dictionary).get(shard) ?? "{}\n";
-};
-
-/**
- * The new canonical text of a shard after confirming one surface's entry
- * (dropping its `?`). Throws if the surface has no entry in the shard.
- */
-export const confirmEntryText = (
-  shardText: string,
-  surface: string,
-): string => {
-  const shard = shardOf(surface);
-  const { dictionary } = parseDictionary(new Map([[shard, shardText]]));
-  const entry = dictionary[surface];
-  if (entry === undefined) {
-    throw new Error(`no dictionary entry for "${surface}" to confirm`);
+  for (const { surface, value } of entries) {
+    const entry = parseEntry(surface, value);
+    if ("error" in entry) throw new Error(entry.error);
+    dictionary[surface] = entry;
   }
-  dictionary[surface] = { ...entry, confirmed: true };
   return shardDictionary(dictionary).get(shard) ?? "{}\n";
 };

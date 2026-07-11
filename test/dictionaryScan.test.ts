@@ -1,11 +1,11 @@
 /**
  * The dictionary accounting scan: locating the surfaces the corpus's
- * `accountTokens` rule leaves unaccounted (no entry) or unconfirmed (a `?`
- * entry) in a document's source. The decision is the corpus's — exercised
- * thoroughly in the corpus's own tests — so these cases pin down the location
- * layer: that markup exemptions, mechanical classes, and `[w:]` disambiguation
- * are respected (via the shared tokenizer), that every real occurrence is
- * flagged with the right range, and that a fully accounted document is silent.
+ * `accountTokens` rule leaves unaccounted (no entry) in a document's source.
+ * The decision is the corpus's — exercised thoroughly in the corpus's own
+ * tests — so these cases pin down the location layer: that markup exemptions,
+ * mechanical classes, and `[w:]` disambiguation are respected (via the shared
+ * tokenizer), that every real occurrence is flagged with the right range, and
+ * that a fully accounted document is silent.
  */
 
 import { expect, test } from "vitest";
@@ -17,8 +17,8 @@ import {
 } from "@jsr/earlytexts__corpus";
 import {
   scanUnaccounted,
-  statusSets,
   type UnaccountedWord,
+  unaccountedSurfaces,
 } from "../src/lib/dictionaryScan.ts";
 
 /** Build an expanded dictionary from on-disk micro-syntax, the real pipeline. */
@@ -44,7 +44,6 @@ const scan = (
 test("flags a plain word with no dictionary entry", () => {
   const found = scan("The wombat sleeps.", { the: null, sleeps: null });
   expect(found.map((w) => w.surface)).toEqual(["wombat"]);
-  expect(found[0]!.status).toBe("unaccounted");
   expect(found[0]!.display).toBe("wombat");
 });
 
@@ -52,16 +51,16 @@ test("says nothing when every word is accounted", () => {
   expect(scan("The virtue.", { the: null, virtue: null })).toEqual([]);
 });
 
-test("a `?` entry is flagged as unconfirmed, a plain entry is silent", () => {
+test("does not flag a word that has a dictionary entry", () => {
+  // A registered surface (here a respelling with its own modern entry) is
+  // accounted, so it is never squiggled.
   const found = scan("compleat vertue", {
-    compleat: "?complete",
+    compleat: "complete",
     complete: null,
     vertue: "virtue",
     virtue: null,
   });
-  expect(found).toEqual([
-    expect.objectContaining({ surface: "compleat", status: "unconfirmed" }),
-  ]);
+  expect(found).toEqual([]);
 });
 
 test("does not flag words inside exempting markup (person, citation)", () => {
@@ -117,11 +116,8 @@ test("folds case for matching but reports the printed form", () => {
   expect(found.map((w) => w.display)).toEqual(["Wombat", "WOMBAT"]);
 });
 
-test("statusSets buckets folded surfaces by accounting status", () => {
-  const [document] = doc("known guessed unknown");
-  const sets = statusSets(document, dict({ known: null, guessed: "?known" }));
-  // `guessed` cross-references `known`? No — `?known` is a cross-reference to
-  // the modern spelling "known", confirmed=false. Its status is unconfirmed.
-  expect([...sets.unaccounted]).toEqual(["unknown"]);
-  expect([...sets.unconfirmed]).toEqual(["guessed"]);
+test("unaccountedSurfaces collects the folded surfaces with no entry", () => {
+  const [document] = doc("known also unknown");
+  const surfaces = unaccountedSurfaces(document, dict({ known: null }));
+  expect([...surfaces].sort()).toEqual(["also", "unknown"]);
 });

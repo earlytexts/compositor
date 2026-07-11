@@ -23,14 +23,29 @@ export const entryWords = (input: string): string[] => {
     : [];
 };
 
-/** The Problems-panel message for an unaccounted (unknown) or unconfirmed (`?`)
- * surface. */
+/** The Problems-panel message for an unaccounted (unknown) surface. */
 export const unaccountedMessage = (
-  word: Pick<UnaccountedWord, "status" | "display">,
-): string =>
-  word.status === "unaccounted"
-    ? `“${word.display}” is not in the dictionary.`
-    : `“${word.display}” has an unconfirmed dictionary entry.`;
+  word: Pick<UnaccountedWord, "display">,
+): string => `“${word.display}” is not in the dictionary.`;
+
+/** The prompt title when a target needs an entry of its own before the
+ * referencing entry can be written (a respelling target, in the corpus but not
+ * yet the register). */
+export const addTargetTitle = (target: string): string =>
+  `“${target}” has no entry yet — add it as`;
+
+/** The error when a respelling target is neither registered nor attested: a
+ * respelling must point to a spelling that actually appears in the texts. */
+export const unattestedRejectMessage = (target: string): string =>
+  `“${target}” is not in the dictionary or the corpus. A respelling must ` +
+  `point to a spelling that appears in the texts (make the archaic form ` +
+  `itself the modern word instead).`;
+
+/** The confirmation when a lemma is neither registered nor attested: a citation
+ * form may be unprinted (datum for data), so it is allowed on confirmation. */
+export const unattestedLemmaMessage = (target: string): string =>
+  `“${target}” never appears in the corpus. Add it anyway as a modern word ` +
+  `(an unprinted citation form)?`;
 
 /** The quick-fix title for a curation action on `surface`. */
 export const entryActionTitle = (
@@ -44,7 +59,5 @@ export const entryActionTitle = (
       return `Add “${surface}” as a respelling…`;
     case "lemma":
       return `Add “${surface}” with a lemma…`;
-    case "confirm":
-      return `Confirm the dictionary entry for “${surface}”`;
   }
 };

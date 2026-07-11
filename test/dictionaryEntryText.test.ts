@@ -6,9 +6,12 @@
 
 import { expect, test } from "vitest";
 import {
+  addTargetTitle,
   entryActionTitle,
   entryWords,
   unaccountedMessage,
+  unattestedLemmaMessage,
+  unattestedRejectMessage,
 } from "../src/lib/dictionaryEntryText.ts";
 
 test("entryWords folds a single word", () => {
@@ -33,13 +36,28 @@ test("entryWords treats blank input as empty", () => {
   expect(entryWords("")).toEqual([]);
 });
 
-test("unaccountedMessage distinguishes unknown from unconfirmed", () => {
-  expect(unaccountedMessage({ status: "unaccounted", display: "vertue" })).toBe(
+test("unaccountedMessage reports the unknown surface", () => {
+  expect(unaccountedMessage({ display: "vertue" })).toBe(
     "“vertue” is not in the dictionary.",
   );
-  expect(
-    unaccountedMessage({ status: "unconfirmed", display: "compleat" }),
-  ).toBe("“compleat” has an unconfirmed dictionary entry.");
+});
+
+test("addTargetTitle names the target needing an entry", () => {
+  expect(addTargetTitle("virtue")).toBe(
+    "“virtue” has no entry yet — add it as",
+  );
+});
+
+test("unattestedRejectMessage refuses an unattested respelling target", () => {
+  expect(unattestedRejectMessage("virtue")).toContain(
+    "“virtue” is not in the dictionary or the corpus",
+  );
+});
+
+test("unattestedLemmaMessage asks to confirm an unprinted citation form", () => {
+  expect(unattestedLemmaMessage("datum")).toContain(
+    "“datum” never appears in the corpus",
+  );
 });
 
 test("entryActionTitle covers every curation action", () => {
@@ -51,8 +69,5 @@ test("entryActionTitle covers every curation action", () => {
   );
   expect(entryActionTitle("vertue", "lemma")).toBe(
     "Add “vertue” with a lemma…",
-  );
-  expect(entryActionTitle("compleat", "confirm")).toBe(
-    "Confirm the dictionary entry for “compleat”",
   );
 });

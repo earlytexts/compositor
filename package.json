@@ -2,7 +2,7 @@
   "name": "compositor",
   "publisher": "earlytexts",
   "displayName": "Early Text Compositor",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "A VSCode extension for contributing to the Early Text Corpus",
   "license": "MIT",
   "repository": {
@@ -22,7 +22,7 @@
     "package": "vsce package --no-dependencies --out build/compositor.vsix"
   },
   "dependencies": {
-    "@jsr/earlytexts__corpus": "^0.8.1",
+    "@jsr/earlytexts__corpus": "^0.8.2",
     "@jsr/earlytexts__markit": "^3.7.0"
   },
   "devDependencies": {
@@ -155,11 +155,6 @@
         "category": "Compositor"
       },
       {
-        "command": "compositor.curateConfirm",
-        "title": "Confirm Dictionary Entry",
-        "category": "Compositor"
-      },
-      {
         "command": "compositor.compareWithNext",
         "title": "Compare with Next Edition",
         "category": "Compositor",
@@ -249,11 +244,6 @@
           "command": "compositor.curateLemma",
           "when": "view == compositor.curation && viewItem == curationUnaccounted",
           "group": "compositor@3"
-        },
-        {
-          "command": "compositor.curateConfirm",
-          "when": "view == compositor.curation && viewItem == curationUnconfirmed",
-          "group": "compositor@1"
         }
       ],
       "editor/context": [
@@ -309,10 +299,6 @@
         {
           "command": "compositor.curateLemma",
           "when": "false"
-        },
-        {
-          "command": "compositor.curateConfirm",
-          "when": "false"
         }
       ]
     },
@@ -327,7 +313,7 @@
         "compositor.flagUnaccountedWords": {
           "type": "boolean",
           "default": false,
-          "description": "Squiggle words the dictionary does not yet account for (unknown surfaces as warnings, unconfirmed entries as hints) in open editions. Off by default: until the register is backfilled, most words are unaccounted, so this is a curation aid rather than an everyday diagnostic."
+          "description": "Squiggle words the dictionary does not yet account for (unknown surfaces, as warnings) in open editions. Off by default: until the register is backfilled, most words are unaccounted, so this is a curation aid rather than an everyday diagnostic."
         },
         "compositor.suggestMarkup": {
           "type": "boolean",
