@@ -46,7 +46,7 @@ test("replaces an existing entry rather than duplicating it", () => {
 });
 
 test("rejects a malformed value", () => {
-  expect(() => upsertEntryText("", "x", "=not a lemma")).toThrow();
+  expect(() => upsertEntryText("", "x", "=a!b")).toThrow();
 });
 
 test("adds several entries to one shard at once, keeping keys sorted", () => {
@@ -62,7 +62,7 @@ test("adds several entries to one shard at once, keeping keys sorted", () => {
 
 test("upsertEntriesText rolls back nothing — a malformed value throws", () => {
   expect(() =>
-    upsertEntriesText("", [{ surface: "x", value: "=not a lemma" }]),
+    upsertEntriesText("", [{ surface: "x", value: "=a!b" }]),
   ).toThrow();
 });
 

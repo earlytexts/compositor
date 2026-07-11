@@ -87,7 +87,21 @@ describe("scaffold templates", () => {
   });
 
   it("the rule set is intact", () => {
-    // 11 structural rules + the 4 dictionary rules (corpus 0.8.0).
-    expect(rules.length).toBe(15);
+    // The scaffolds and dictionary quick-fixes lean on these corpus rules by
+    // name; assert they are present rather than pinning an exact count (which
+    // breaks on every unrelated corpus rule addition).
+    const names = new Set(rules.map((r) => r.name));
+    for (const name of [
+      "every file compiles without errors",
+      "every file is formatted canonically",
+      "author files match the author schema",
+      "texts match the text schema",
+      "work stubs name a canonical edition that exists",
+      "root IDs match file paths",
+      "dictionary shards are well-formed",
+      "dictionary readings resolve within the register",
+    ]) {
+      expect(names).toContain(name);
+    }
   });
 });
