@@ -38,6 +38,7 @@ import {
   type DictionaryController,
 } from "./surface/commands/dictionaryDiagnostics.ts";
 import { configureDiagnostics } from "./surface/commands/configureDiagnostics.ts";
+import { runSetup } from "./git/setup.ts";
 import {
   createCurationView,
   type CurationView,
@@ -179,16 +180,13 @@ export const activate = async (
   ): vscode.Disposable => vscode.commands.registerCommand(id, handler);
 
   context.subscriptions.push(
-    // Delegates to the built-in git extension: its clone command picks the
-    // destination, shows progress, and offers to open the result — which
-    // activates this extension (workspaceContains:data/authors). No build step
-    // is needed: the model compiles in memory, and its first load writes catalogue/.
-    command("compositor.cloneCorpus", () =>
-      vscode.commands.executeCommand(
-        "git.clone",
-        "https://github.com/earlytexts/corpus",
-      ),
-    ),
+    // Wrapped git/GitHub onboarding for non-technical contributors: signs in via
+    // VSCode's built-in GitHub provider, ensures a fork, clones it with bundled
+    // git (no system git required), points upstream at the corpus, and offers to
+    // open the result — which activates this extension (workspaceContains:
+    // data/authors). No build step is needed: the model compiles in memory, and
+    // its first load writes catalogue/.
+    command("compositor.setup", () => runSetup()),
     command("compositor.refresh", () => withModel((m) => m.reload())),
     command("compositor.validate", () => withModel((m) => m.reload())),
     command("compositor.fixFormatting", () => withModel(fixFormatting)),

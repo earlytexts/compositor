@@ -11,7 +11,7 @@ import {
   CORPUS_ROOT,
   corpus,
   memoryCorpus,
-} from "@jsr/earlytexts__corpus/harness";
+} from "@jsr/earlytexts__corpus/test";
 import {
   corpusVocabulary,
   resolveLemmaTarget,

@@ -22,8 +22,9 @@
     "package": "vsce package --no-dependencies --out build/compositor.vsix"
   },
   "dependencies": {
-    "@jsr/earlytexts__corpus": "^0.8.2",
-    "@jsr/earlytexts__markit": "^3.7.0"
+    "@jsr/earlytexts__corpus": "^0.10.0",
+    "@jsr/earlytexts__markit": "^3.7.0",
+    "isomorphic-git": "^1.38.7"
   },
   "devDependencies": {
     "@types/node": "^25.5.2",
@@ -74,13 +75,13 @@
     "viewsWelcome": [
       {
         "view": "compositor.corpusBrowser",
-        "contents": "No corpus found.\nOpen a clone of the [Early Text Corpus](https://github.com/earlytexts/corpus) — a folder containing data/authors — or set compositor.corpusRoot if the corpus is a subfolder of the workspace.\n[Clone Corpus](command:compositor.cloneCorpus)\n[Retry](command:compositor.refresh)"
+        "contents": "No corpus found.\nSet up the [Early Text Corpus](https://github.com/earlytexts/corpus) on this computer — sign in with GitHub and it is cloned for you — or open a folder containing data/authors, or set compositor.corpusRoot if the corpus is a subfolder of the workspace.\n[Set up the corpus](command:compositor.setup)\n[Retry](command:compositor.refresh)"
       }
     ],
     "commands": [
       {
-        "command": "compositor.cloneCorpus",
-        "title": "Clone Corpus…",
+        "command": "compositor.setup",
+        "title": "Set up the Corpus…",
         "category": "Compositor",
         "icon": "$(repo-clone)"
       },
