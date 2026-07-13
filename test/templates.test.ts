@@ -17,7 +17,7 @@ import {
   CORPUS_ROOT,
   corpus,
   memoryCorpus,
-} from "@jsr/earlytexts__corpus/harness";
+} from "@jsr/earlytexts__corpus/test";
 import { authorFile, editionFile, stubFile } from "../src/lib/templates.ts";
 
 const author = authorFile({

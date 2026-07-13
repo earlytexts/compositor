@@ -11,7 +11,7 @@ import {
   CORPUS_ROOT,
   corpus,
   memoryCorpus,
-} from "@jsr/earlytexts__corpus/harness";
+} from "@jsr/earlytexts__corpus/test";
 import { findEdition, replaceScopes } from "../src/lib/replaceScope.ts";
 
 // David Hume: the Enquiry (two editions) and the Treatise (one edition).

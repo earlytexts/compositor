@@ -13,7 +13,7 @@ import {
   corpus,
   CORPUS_ROOT,
   memoryCorpus,
-} from "@jsr/earlytexts__corpus/harness";
+} from "@jsr/earlytexts__corpus/test";
 import {
   buildHints,
   foldWord,

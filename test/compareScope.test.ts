@@ -10,7 +10,7 @@ import {
   CORPUS_ROOT,
   corpus,
   memoryCorpus,
-} from "@jsr/earlytexts__corpus/harness";
+} from "@jsr/earlytexts__corpus/test";
 import { comparableWorks, nextEdition } from "../src/lib/compareScope.ts";
 
 // Hume: the Enquiry (two editions) and the Treatise (one edition only).
